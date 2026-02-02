@@ -1,0 +1,20 @@
+name: labshock
+
+networks:
+  portal_network:
+    driver: bridge
+
+services:
+  portal:
+    image: zakharbz/labshock-portal:latest
+    ports:
+      - '443:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-compose.yml:/app/docker/docker-compose.yml
+      - portal-data:/app/config/
+    networks:
+      - portal_network
+
+volumes:
+  portal-data:

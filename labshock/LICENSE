@@ -1,0 +1,91 @@
+Labshock Software License
+Version 2.0 – 2026
+
+1. License Scope
+
+This license applies to the Labshock project and its related components. The license is divided into:
+
+Open-source components:
+- OpenPLC (licensed under GNU General Public License v3.0)
+- FUXA (licensed under the MIT License)
+
+Proprietary components:
+- Labshock Portal
+- Labshock orchestration files
+- Network Swiftness
+- Tidal Collector
+- Pentest Fury
+- Portal
+- Router
+- EWS
+
+2. Open-Source Components
+
+OpenPLC (GPL v3):  
+- Licensed under the GNU General Public License, Version 3.
+- Source code is available at: https://github.com/thiagoralves/OpenPLC_v3
+- You are free to use, modify, and redistribute these components under the same GPL terms
+- If you distribute modified versions, you must provide the source code under GPL v3
+- The full text of the GPL v3 license can be found at https://www.gnu.org/licenses/gpl-3.0.html
+
+FUXA (MIT License)
+- Licensed under the MIT License
+- The license text for FUXA is available at: https://github.com/frangoteam/FUXA/
+- No obligation to provide source code if unmodified, but attribution is required under MIT terms
+
+3. Proprietary Components
+
+The following components are proprietary and subject to restrictions:
+
+- Labshock orchestration (Docker Compose and related files)
+- Network Swiftness
+- Tidal Collector
+- Pentest Fury
+- Portal
+- EWS
+- Router
+
+Usage Restrictions:
+
+- Personal Use Only – You may use these components for personal, non-commercial purposes.
+- No Redistribution – You may not share, distribute, or sublicense these components.
+- No Commercial Use – You may not use these components in a commercial environment (e.g., selling, hosting as a service, or integrating into paid products) without purchasing a Pro License.
+- No Reverse Engineering – You may not modify, decompile, or create derivative works of these components.
+
+4. License Types
+4.1 Pro License (Personal & Individual Use)
+The Pro License grants the right to use proprietary Labshock components under the following conditions:
+Intended for individuals, students, researchers, and independent professionals
+
+Permitted for:
+- Personal learning
+- Research
+- Commercial deployment is NOT allowed
+
+Restrictions:
+- No redistribution, sublicensing, or public hosting
+- No resale or offering Labshock as a service
+- No reverse engineering, decompilation, or derivative works of proprietary components
+
+4.2 Enterprise License (Commercial Use)
+An Enterprise License is required for any commercial or organizational use, including but not limited to:
+- Use by companies, institutions or government entities
+- Internal corporate training
+- Customer demonstrations
+- Hosting Labshock
+- Integration into commercial products or paid offerings
+
+Enterprise terms are defined in a separate commercial agreement.
+
+5. Commercial Licensing & Contact
+To obtain an Enterprise License, contact:
+
+To obtain a Pro License, contact: info@labshocksecurity.com
+
+6. Termination
+Any violation of this license will result in immediate termination of your rights to use the proprietary components. 
+GPL components remain licensed under their respective terms.
+
+7. Disclaimer
+This software is provided "as is," without warranty of any kind. 
+The author is not responsible for any damages resulting from the use of this software.
