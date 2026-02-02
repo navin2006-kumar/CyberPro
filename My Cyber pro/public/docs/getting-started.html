@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting Started - Cyber Lab Platform</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .docs-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .docs-content h2 {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .docs-content h2:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+
+        .docs-content code {
+            background: var(--bg-tertiary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+        }
+
+        .docs-content pre {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .docs-content pre code {
+            background: none;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🔬</span>
+                    <span>Cyber Lab Platform</span>
+                </div>
+                <nav class="nav">
+                    <a href="/" class="nav-link">Dashboard</a>
+                    <a href="/labs" class="nav-link">Labs</a>
+                    <a href="/docs" class="nav-link active">Docs</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container" style="margin-top: 2rem; margin-bottom: 3rem;">
+        <div class="docs-content">
+            <h1>Getting Started Guide</h1>
+            <p class="text-muted" style="font-size: 1.125rem;">
+                Everything you need to know to start using the Cyber Lab Platform
+            </p>
+
+            <h2>🚀 Quick Start</h2>
+            <p>Follow these steps to get up and running:</p>
+            <ol>
+                <li><strong>Ensure Docker is running</strong> - Check that Docker Desktop is started</li>
+                <li><strong>Log in</strong> - Use the default credentials (admin / admin123)</li>
+                <li><strong>Choose a lab</strong> - Navigate to the Labs page</li>
+                <li><strong>Start the lab</strong> - Click the "Start Lab" button</li>
+                <li><strong>Wait for initialization</strong> - Labs typically start in 20-30 seconds</li>
+                <li><strong>Access the lab</strong> - Use the provided port to access lab services</li>
+            </ol>
+
+            <h2>🧪 Lab Types</h2>
+
+            <h3>SCADA Fundamentals</h3>
+            <p><strong>Difficulty:</strong> Beginner<br>
+                <strong>Port:</strong> 8080<br>
+                <strong>What you'll learn:</strong> SCADA systems, Modbus/TCP protocol, HMI interfaces
+            </p>
+
+            <h3>PLC Programming</h3>
+            <p><strong>Difficulty:</strong> Intermediate<br>
+                <strong>Port:</strong> 8081<br>
+                <strong>What you'll learn:</strong> PLC programming, OpenPLC runtime, industrial logic
+            </p>
+
+            <h3>Network Monitoring</h3>
+            <p><strong>Difficulty:</strong> Intermediate<br>
+                <strong>Port:</strong> 8082<br>
+                <strong>What you'll learn:</strong> Network traffic analysis, packet capture, protocol detection
+            </p>
+
+            <h3>ICS Penetration Testing</h3>
+            <p><strong>Difficulty:</strong> Advanced<br>
+                <strong>Port:</strong> 8083<br>
+                <strong>What you'll learn:</strong> Offensive security techniques, vulnerability assessment
+            </p>
+
+            <h2>🎮 Using Labs</h2>
+
+            <h3>Starting a Lab</h3>
+            <p>Click the "Start Lab" button. The platform will:</p>
+            <ul>
+                <li>Pull required Docker images (first time only)</li>
+                <li>Create isolated network</li>
+                <li>Start all lab containers</li>
+                <li>Run health checks</li>
+                <li>Update status to "Running"</li>
+            </ul>
+
+            <h3>Accessing Lab Services</h3>
+            <p>Once a lab is running, access it via:</p>
+            <pre><code>http://localhost:[PORT]</code></pre>
+            <p>The port number is displayed on the lab card.</p>
+
+            <h3>Stopping a Lab</h3>
+            <p>Click the "Stop" button to gracefully shut down the lab. All containers and networks will be cleaned up.
+            </p>
+
+            <h3>Restarting a Lab</h3>
+            <p>If a lab encounters issues, use the "Restart" button for automatic recovery.</p>
+
+            <h2>🔧 Troubleshooting</h2>
+
+            <h3>Docker Not Running</h3>
+            <p><strong>Symptom:</strong> Red "Docker Not Running" badge<br>
+                <strong>Solution:</strong> Start Docker Desktop and wait for it to fully initialize
+            </p>
+
+            <h3>Lab Stuck in "Starting"</h3>
+            <p><strong>Symptom:</strong> Lab shows "Starting" for more than 2 minutes<br>
+                <strong>Solution:</strong> Click "Restart" or check Docker Desktop for errors
+            </p>
+
+            <h3>Port Already in Use</h3>
+            <p><strong>Symptom:</strong> Lab fails to start with port conflict<br>
+                <strong>Solution:</strong> Stop other services using the same port or modify lab configuration
+            </p>
+
+            <h3>Lab Auto-Recovery</h3>
+            <p>The platform includes automatic health monitoring. If a container crashes, it will attempt to restart
+                automatically.</p>
+
+            <h2>🛡️ Security Best Practices</h2>
+            <ul>
+                <li>Change the default admin password after first login</li>
+                <li>Run labs only in isolated environments</li>
+                <li>Never expose lab ports to the internet</li>
+                <li>Use labs for educational purposes only</li>
+                <li>Keep Docker and the platform updated</li>
+            </ul>
+
+            <h2>📚 Additional Resources</h2>
+            <ul>
+                <li><a href="/" class="nav-link">Dashboard</a> - Platform overview and quick access</li>
+                <li><a href="/labs" class="nav-link">All Labs</a> - Browse all available labs</li>
+                <li><a href="https://github.com/zakharb/labshock" target="_blank" class="nav-link">Labshock</a> -
+                    Original inspiration</li>
+            </ul>
+
+            <h2>❓ Need Help?</h2>
+            <p>If you encounter issues not covered in this guide:</p>
+            <ul>
+                <li>Check the browser console for error messages</li>
+                <li>Review Docker Desktop logs</li>
+                <li>Ensure all system requirements are met</li>
+                <li>Try restarting the platform server</li>
+            </ul>
+
+            <div class="card mt-3" style="background: rgba(0, 245, 255, 0.1); border-color: var(--accent-primary);">
+                <h3>🎯 Ready to Start?</h3>
+                <p>Head over to the <a href="/labs" style="color: var(--accent-primary);">Labs page</a> and launch your
+                    first lab!</p>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>
