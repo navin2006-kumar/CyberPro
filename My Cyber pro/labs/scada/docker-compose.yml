@@ -1,0 +1,46 @@
+name: scada-lab
+networks:
+  scada_network:
+    driver: bridge
+
+services:
+  # Modbus TCP Server
+  modbus-server:
+    image: oitc/modbus-server:latest
+    container_name: scada_modbus
+    networks:
+      - scada_network
+    ports:
+      - "5020:502"
+    environment:
+      - MODBUS_PORT=502
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "502"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # SCADA HMI Interface
+  scada-hmi:
+    image: node:18-alpine
+    container_name: scada_hmi
+    working_dir: /app
+    networks:
+      - scada_network
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./hmi:/app
+    command: sh -c "npm install && npm start"
+    environment:
+      - MODBUS_HOST=modbus-server
+      - MODBUS_PORT=502
+    depends_on:
+      - modbus-server
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
