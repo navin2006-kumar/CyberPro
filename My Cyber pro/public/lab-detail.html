@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Detail - CyberPro</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/lab-detail.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>🔬 CyberPro</h1>
+            </div>
+            <div class="nav-links">
+                <a href="/dashboard.html">Dashboard</a>
+                <a href="/labs.html">Labs</a>
+                <a href="/profile.html">Profile</a>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="back-link">
+            <a href="/labs.html">← Back to Labs</a>
+        </div>
+
+        <div class="lab-detail-grid">
+            <!-- Left Panel - Lab Info -->
+            <div class="lab-info-panel">
+                <div class="lab-header">
+                    <h1 id="labName">Loading...</h1>
+                    <div class="lab-badges">
+                        <span class="difficulty-badge" id="labDifficulty"></span>
+                        <span class="category-badge" id="labCategory"></span>
+                    </div>
+                </div>
+
+                <div class="lab-section">
+                    <h3>📝 Description</h3>
+                    <p id="labDescription"></p>
+                </div>
+
+                <div class="lab-section">
+                    <h3>🎯 Learning Objectives</h3>
+                    <ul id="labObjectives"></ul>
+                </div>
+
+                <div class="lab-section">
+                    <h3>⏱️ Estimated Time</h3>
+                    <p id="labTime"></p>
+                </div>
+            </div>
+
+            <!-- Right Panel - Lab Control -->
+            <div class="lab-control-panel">
+                <div class="status-card">
+                    <div class="status-header">
+                        <h3>Lab Status</h3>
+                        <span class="status-indicator" id="labStatus">Stopped</span>
+                    </div>
+
+                    <div class="control-buttons">
+                        <button id="startBtn" class="btn-start">
+                            🚀 Start Lab
+                        </button>
+                        <button id="stopBtn" class="btn-stop" style="display: none;">
+                            ⏹️ Stop Lab
+                        </button>
+                    </div>
+
+                    <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Starting lab containers...</p>
+                    </div>
+                </div>
+
+                <div class="services-card">
+                    <h3>📦 Services</h3>
+                    <div id="servicesList" class="services-list">
+                        <!-- Services will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="resources-card">
+                    <h3>💻 Resources</h3>
+                    <div class="resource-item">
+                        <span>CPU Usage:</span>
+                        <span id="cpuUsage">--</span>
+                    </div>
+                    <div class="resource-item">
+                        <span>Memory:</span>
+                        <span id="memoryUsage">--</span>
+                    </div>
+                    <div class="resource-item">
+                        <span>Containers:</span>
+                        <span id="containerCount">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/lab-detail.js"></script>
+</body>
+
+</html>

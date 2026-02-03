@@ -1,0 +1,278 @@
+/* Labs Page Styling */
+
+.page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding: 2rem 0;
+}
+
+.page-header h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #00EA64, #00C9FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.page-header p {
+    font-size: 1.2rem;
+    color: #888;
+}
+
+/* Filters */
+.filters-section {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.filter-group label {
+    font-size: 0.9rem;
+    color: #888;
+    font-weight: 500;
+}
+
+.filter-group select {
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-group select:hover {
+    border-color: #00EA64;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.filter-group select:focus {
+    outline: none;
+    border-color: #00EA64;
+    box-shadow: 0 0 0 3px rgba(0, 234, 100, 0.1);
+}
+
+/* Labs Grid */
+.labs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.lab-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.lab-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #00EA64, #00C9FF);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.lab-card:hover::before {
+    transform: scaleX(1);
+}
+
+.lab-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(0, 234, 100, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 234, 100, 0.2);
+}
+
+.lab-card.running {
+    border-color: rgba(0, 234, 100, 0.5);
+    background: rgba(0, 234, 100, 0.05);
+}
+
+.lab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.lab-header h3 {
+    font-size: 1.3rem;
+    color: #fff;
+    margin: 0;
+    flex: 1;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.available {
+    background: rgba(0, 234, 100, 0.2);
+    color: #00EA64;
+}
+
+.status-badge.running {
+    background: rgba(255, 165, 0, 0.2);
+    color: #FFA500;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.status-badge.completed {
+    background: rgba(0, 201, 255, 0.2);
+    color: #00C9FF;
+}
+
+.lab-meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.difficulty-badge,
+.category-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.difficulty-badge.beginner {
+    background: rgba(0, 234, 100, 0.2);
+    color: #00EA64;
+}
+
+.difficulty-badge.intermediate {
+    background: rgba(255, 165, 0, 0.2);
+    color: #FFA500;
+}
+
+.difficulty-badge.advanced {
+    background: rgba(255, 69, 0, 0.2);
+    color: #FF4500;
+}
+
+.category-badge {
+    background: rgba(0, 201, 255, 0.2);
+    color: #00C9FF;
+}
+
+.lab-description {
+    color: #aaa;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    min-height: 60px;
+}
+
+.lab-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lab-services {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.lab-services span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.btn-launch {
+    padding: 0.6rem 1.5rem;
+    background: linear-gradient(135deg, #00EA64, #00C9FF);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-launch:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 234, 100, 0.3);
+}
+
+/* Loading and Empty States */
+.loading-state,
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #888;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #00EA64;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .filters-section {
+        flex-direction: column;
+    }
+
+    .labs-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+    }
+}

@@ -106,7 +106,7 @@ app.post('/api/auth/login', async (req, res) => {
         req.session.username = user.username;
         req.session.role = user.role;
 
-        await db.logActivity(user.id, 'login', 'User logged in');
+        await db.logUserActivity(user.id, 'login', 'User logged in');
 
         res.json({
             success: true,
@@ -123,7 +123,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/logout', requireAuth, async (req, res) => {
-    await db.logActivity(req.session.userId, 'logout', 'User logged out');
+    await db.logUserActivity(req.session.userId, 'logout', 'User logged out');
     req.session.destroy();
     res.json({ success: true, message: 'Logged out successfully' });
 });
@@ -295,6 +295,155 @@ app.post('/api/chatbot/reset', requireAuth, (req, res) => {
     }
 });
 
+// ============ Lab Management Routes ============
+
+// Get all labs
+app.get('/api/labs', requireAuth, async (req, res) => {
+    try {
+        const labs = await db.getAllLabs();
+        res.json({ success: true, labs });
+    } catch (error) {
+        console.error('Error getting labs:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Get lab by ID
+app.get('/api/labs/:id', requireAuth, async (req, res) => {
+    try {
+        const lab = await db.getLabById(parseInt(req.params.id));
+        if (!lab) {
+            return res.status(404).json({ success: false, message: 'Lab not found' });
+        }
+        res.json({ success: true, lab });
+    } catch (error) {
+        console.error('Error getting lab:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Start lab
+app.post('/api/labs/:id/start', requireAuth, async (req, res) => {
+    try {
+        const labId = parseInt(req.params.id);
+        const lab = await db.getLabById(labId);
+
+        if (!lab) {
+            return res.status(404).json({ success: false, message: 'Lab not found' });
+        }
+
+        // Check if lab is already running
+        const activeSession = await db.getActiveLabSession(req.session.userId, labId);
+        if (activeSession) {
+            return res.json({ success: true, message: 'Lab already running', sessionId: activeSession.id });
+        }
+
+        // Start lab using labManager
+        const result = await labManager.startLab(lab.slug);
+
+        if (result.success) {
+            // Create lab session
+            const sessionId = await db.createLabSession(req.session.userId, labId);
+
+            // Log activity
+            await db.logActivity(req.session.userId, labId, 'lab_started', `Started ${lab.name}`);
+
+            res.json({ success: true, sessionId, message: 'Lab started successfully' });
+        } else {
+            res.status(500).json({ success: false, message: result.message || 'Failed to start lab' });
+        }
+    } catch (error) {
+        console.error('Error starting lab:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Stop lab
+app.post('/api/labs/:id/stop', requireAuth, async (req, res) => {
+    try {
+        const labId = parseInt(req.params.id);
+        const lab = await db.getLabById(labId);
+
+        if (!lab) {
+            return res.status(404).json({ success: false, message: 'Lab not found' });
+        }
+
+        // Get active session
+        const activeSession = await db.getActiveLabSession(req.session.userId, labId);
+
+        // Stop lab using labManager
+        const result = await labManager.stopLab(lab.slug);
+
+        if (activeSession) {
+            await db.stopLabSession(activeSession.id);
+        }
+
+        // Log activity
+        await db.logActivity(req.session.userId, labId, 'lab_stopped', `Stopped ${lab.name}`);
+
+        res.json({ success: true, message: 'Lab stopped successfully' });
+    } catch (error) {
+        console.error('Error stopping lab:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Get lab status
+app.get('/api/labs/:id/status', requireAuth, async (req, res) => {
+    try {
+        const labId = parseInt(req.params.id);
+        const lab = await db.getLabById(labId);
+
+        if (!lab) {
+            return res.status(404).json({ success: false, message: 'Lab not found' });
+        }
+
+        const status = await labManager.getLabStatus(lab.slug);
+
+        res.json({
+            success: true,
+            status: status.running ? 'running' : 'stopped',
+            resources: {
+                containers: status.containers || 0,
+                cpu: '--',
+                memory: '--'
+            }
+        });
+    } catch (error) {
+        console.error('Error getting lab status:', error);
+        res.json({ success: true, status: 'stopped', resources: {} });
+    }
+});
+
+// ============ Dashboard Routes ============
+
+// Get dashboard stats
+app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
+    try {
+        const stats = await db.getUserStats(req.session.userId);
+        res.json({ success: true, stats });
+    } catch (error) {
+        console.error('Error getting stats:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Get recent activity
+app.get('/api/dashboard/activity', requireAuth, async (req, res) => {
+    try {
+        const activity = await db.getRecentActivity(req.session.userId, 10);
+        const formattedActivity = activity.map(item => ({
+            type: item.activity_type,
+            title: item.title,
+            timestamp: item.timestamp
+        }));
+        res.json({ success: true, activity: formattedActivity });
+    } catch (error) {
+        console.error('Error getting activity:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 // Serve frontend
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -306,6 +455,10 @@ app.get('/labs', (req, res) => {
 
 app.get('/docs', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'docs', 'getting-started.html'));
+});
+
+app.get('/oilsprings', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'oilsprings.html'));
 });
 
 // Error handling

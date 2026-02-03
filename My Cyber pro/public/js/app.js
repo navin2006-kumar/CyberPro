@@ -222,7 +222,9 @@ function getDifficultyColor(difficulty) {
 // Get lab buttons based on status
 function getLabButtons(lab) {
     if (lab.status === 'running') {
+        const accessBtn = `<button id="access-${lab.id}" class="btn btn-primary" style="flex: 1;" onclick="accessLab(${lab.id})">🚀 Access Lab</button>`;
         return `
+            ${accessBtn}
             <button id="stop-${lab.id}" class="btn btn-danger" style="flex: 1;">⏹ Stop</button>
             <button id="restart-${lab.id}" class="btn btn-warning" style="flex: 1;">🔄 Restart</button>
         `;
@@ -230,6 +232,26 @@ function getLabButtons(lab) {
         return `<button class="btn btn-secondary" disabled style="flex: 1;">⏳ Please wait...</button>`;
     } else {
         return `<button id="start-${lab.id}" class="btn btn-success" style="flex: 1;">▶ Start Lab</button>`;
+    }
+}
+
+// Access running lab
+async function accessLab(labId) {
+    try {
+        const response = await fetch(`${API_BASE}/api/labs/${labId}`);
+        const data = await response.json();
+
+        if (data.success && data.lab) {
+            const labUrl = getLabUrl(data.lab);
+            if (labUrl) {
+                window.open(labUrl, '_blank');
+            } else {
+                showNotification('Lab URL not available', 'warning');
+            }
+        }
+    } catch (error) {
+        console.error('Error accessing lab:', error);
+        showNotification('Failed to access lab', 'error');
     }
 }
 
@@ -241,7 +263,22 @@ async function startLab(labId) {
         const data = await response.json();
 
         if (data.success) {
-            showNotification('Lab started successfully!', 'success');
+            showNotification('Lab started successfully! Opening lab interface...', 'success');
+
+            // Get lab details to find the URL
+            const labResponse = await fetch(`${API_BASE}/api/labs/${labId}`);
+            const labData = await labResponse.json();
+
+            if (labData.success && labData.lab) {
+                // Auto-redirect to lab interface
+                const labUrl = getLabUrl(labData.lab);
+                if (labUrl) {
+                    setTimeout(() => {
+                        window.open(labUrl, '_blank');
+                    }, 2000); // Wait 2 seconds for lab to fully start
+                }
+            }
+
             setTimeout(() => loadLabs(), 1000);
         } else {
             showNotification(data.message || 'Failed to start lab', 'error');
@@ -250,6 +287,31 @@ async function startLab(labId) {
         console.error('Error starting lab:', error);
         showNotification('Failed to start lab', 'error');
     }
+}
+
+// Get lab URL based on lab type and ports
+function getLabUrl(lab) {
+    // Parse ports
+    let ports;
+    try {
+        ports = JSON.parse(lab.ports);
+    } catch (e) {
+        ports = lab.ports;
+    }
+
+    // Handle OilSprings lab (object with multiple services)
+    if (typeof ports === 'object' && !Array.isArray(ports)) {
+        // OilSprings - redirect to SCADA dashboard
+        return `http://localhost:${ports.scada}`;
+    }
+
+    // Handle simple labs (array of ports)
+    if (Array.isArray(ports) && ports.length > 0) {
+        return `http://localhost:${ports[0]}`;
+    }
+
+    // Fallback
+    return null;
 }
 
 async function stopLab(labId) {

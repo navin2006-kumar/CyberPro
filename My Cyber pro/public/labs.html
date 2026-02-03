@@ -4,67 +4,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>All Labs - Cyber Lab Platform</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/chatbot.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Labs - CyberPro</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/labs.css">
 </head>
 
 <body>
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <div class="logo">
-                    <span class="logo-icon">🔬</span>
-                    <span>Cyber Lab Platform</span>
-                </div>
-                <nav class="nav">
-                    <a href="/" class="nav-link">Dashboard</a>
-                    <a href="/labs" class="nav-link active">Labs</a>
-                    <a href="/docs" class="nav-link">Docs</a>
-                    <button class="btn btn-secondary" id="logoutBtn">Logout</button>
-                </nav>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>🔬 CyberPro</h1>
+            </div>
+            <div class="nav-links">
+                <a href="/dashboard.html">Dashboard</a>
+                <a href="/labs.html" class="active">Labs</a>
+                <a href="/profile.html">Profile</a>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
             </div>
         </div>
-    </header>
+    </nav>
 
-    <main class="container" style="margin-top: 2rem; margin-bottom: 3rem;">
-        <section class="mb-3">
-            <h1>All Available Labs</h1>
-            <p class="text-muted" style="font-size: 1.125rem;">
-                Choose a lab to start your hands-on learning journey
-            </p>
-        </section>
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Header -->
+        <header class="page-header">
+            <h1>🎯 Cyber Security Labs</h1>
+            <p>Hands-on learning with real Docker-based environments</p>
+        </header>
 
-        <section id="allLabsGrid" class="grid grid-3">
-            <div class="card">
-                <div class="spinner" style="margin: 2rem auto;"></div>
+        <!-- Filters -->
+        <div class="filters-section">
+            <div class="filter-group">
+                <label>Category:</label>
+                <select id="categoryFilter">
+                    <option value="">All Categories</option>
+                    <option value="ics">Industrial Control Systems</option>
+                    <option value="scada">SCADA</option>
+                    <option value="network">Network Security</option>
+                    <option value="pentest">Penetration Testing</option>
+                </select>
             </div>
-        </section>
-    </main>
+            <div class="filter-group">
+                <label>Difficulty:</label>
+                <select id="difficultyFilter">
+                    <option value="">All Levels</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Status:</label>
+                <select id="statusFilter">
+                    <option value="">All</option>
+                    <option value="available">Available</option>
+                    <option value="running">Running</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+        </div>
 
-    <script src="/js/app.js"></script>
-    <script>
-        // Load all labs on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            await checkSession();
-            await loadAllLabs();
-        });
+        <!-- Labs Grid -->
+        <div id="labsGrid" class="labs-grid">
+            <!-- Labs will be loaded here -->
+        </div>
 
-        async function loadAllLabs() {
-            try {
-                const response = await fetch(`${API_BASE}/api/labs`);
-                const data = await response.json();
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading labs...</p>
+        </div>
 
-                if (data.success) {
-                    renderLabs(data.labs);
-                }
-            } catch (error) {
-                console.error('Error loading labs:', error);
-            }
-        }
-    </script>
-    <script src="/js/chatbot.js"></script>
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <p>No labs found matching your filters.</p>
+        </div>
+    </div>
+
+    <script src="/js/labs.js"></script>
 </body>
 
 </html>

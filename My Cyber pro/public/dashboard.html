@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CyberPro</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>🔬 CyberPro</h1>
+            </div>
+            <div class="nav-links">
+                <a href="/dashboard.html" class="active">Dashboard</a>
+                <a href="/labs.html">Labs</a>
+                <a href="/profile.html">Profile</a>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Welcome Section -->
+        <header class="welcome-section">
+            <div class="welcome-text">
+                <h1>Welcome back, <span id="username">User</span>! 👋</h1>
+                <p>Continue your cybersecurity learning journey</p>
+            </div>
+            <div class="quick-action">
+                <a href="/labs.html" class="btn-primary">Browse Labs →</a>
+            </div>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="labsCompleted">0</div>
+                    <div class="stat-label">Labs Completed</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="timeSpent">0h</div>
+                    <div class="stat-label">Time Spent</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">🔥</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="currentStreak">0</div>
+                    <div class="stat-label">Day Streak</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="skillLevel">Beginner</div>
+                    <div class="stat-label">Skill Level</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="dashboard-grid">
+            <!-- Recent Activity -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📊 Recent Activity</h2>
+                </div>
+                <div class="card-body">
+                    <div id="activityList" class="activity-list">
+                        <!-- Activity items will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Access Labs -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🚀 Quick Access</h2>
+                    <a href="/labs.html" class="view-all">View All →</a>
+                </div>
+                <div class="card-body">
+                    <div id="quickAccessLabs" class="quick-labs">
+                        <!-- Quick access labs will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Chart -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <h2>📈 Your Progress</h2>
+                </div>
+                <div class="card-body">
+                    <div class="progress-overview">
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>Overall Completion</span>
+                                <span id="overallProgress">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="overallProgressBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/dashboard.js"></script>
+</body>
+
+</html>

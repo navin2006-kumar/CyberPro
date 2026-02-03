@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OilSprings Log Collector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #0a0e27;
+            color: #00ff00;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            padding: 15px;
+            text-align: center;
+            border-radius: 5px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .logs-container {
+            background: #000;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            padding: 20px;
+            height: 600px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-left: 3px solid #00ff00;
+            padding-left: 10px;
+            font-size: 0.9em;
+        }
+
+        .log-info {
+            border-left-color: #00ff00;
+            color: #00ff00;
+        }
+
+        .log-warning {
+            border-left-color: #ffaa00;
+            color: #ffaa00;
+        }
+
+        .log-error {
+            border-left-color: #ff0000;
+            color: #ff0000;
+        }
+
+        .log-critical {
+            border-left-color: #ff00ff;
+            color: #ff00ff;
+        }
+
+        .log-time {
+            opacity: 0.6;
+            margin-right: 10px;
+        }
+
+        .log-service {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .controls {
+            margin-bottom: 15px;
+            text-align: right;
+        }
+
+        button {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-left: 10px;
+        }
+
+        button:hover {
+            background: rgba(0, 255, 0, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📊 OilSprings Log Collector</h1>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-value" id="total-logs">0</div>
+                <div class="stat-label">Total Logs</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="info-logs">0</div>
+                <div class="stat-label">Info</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="warning-logs">0</div>
+                <div class="stat-label">Warnings</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="error-logs">0</div>
+                <div class="stat-label">Errors</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="critical-logs">0</div>
+                <div class="stat-label">Critical</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="exportLogs()">Export Logs</button>
+            <button onclick="clearDisplay()">Clear Display</button>
+        </div>
+
+        <div class="logs-container" id="logs-container">
+            <div class="log-entry log-info">Waiting for logs...</div>
+        </div>
+    </div>
+
+    <script>
+        function updateStats() {
+            fetch('/api/stats')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('total-logs').textContent = data.total;
+                    document.getElementById('info-logs').textContent = data.info;
+                    document.getElementById('warning-logs').textContent = data.warning;
+                    document.getElementById('error-logs').textContent = data.error;
+                    document.getElementById('critical-logs').textContent = data.critical;
+                });
+        }
+
+        function updateLogs() {
+            fetch('/api/logs?limit=100')
+                .then(r => r.json())
+                .then(logs => {
+                    const container = document.getElementById('logs-container');
+                    if (logs.length === 0) return;
+
+                    container.innerHTML = logs.reverse().map(log => {
+                        const time = new Date(log.timestamp).toLocaleTimeString();
+                        const level = log.level || 'info';
+                        return `
+                            <div class="log-entry log-${level}">
+                                <span class="log-time">[${time}]</span>
+                                <span class="log-service">[${log.service || 'UNKNOWN'}]</span>
+                                <span class="log-level">[${level.toUpperCase()}]</span>
+                                ${log.message}
+                            </div>
+                        `;
+                    }).join('');
+                });
+        }
+
+        function exportLogs() {
+            window.open('/api/export', '_blank');
+        }
+
+        function clearDisplay() {
+            document.getElementById('logs-container').innerHTML = '<div class="log-entry log-info">Display cleared. Logs still being collected...</div>';
+        }
+
+        // Update every 2 seconds
+        setInterval(() => {
+            updateStats();
+            updateLogs();
+        }, 2000);
+
+        // Initial load
+        updateStats();
+        updateLogs();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+name: cyberpro
+
+networks:
+  portal_network:
+    driver: bridge
+
+services:
+  portal:
+    image: nginx:alpine
+    ports:
+      - '80:80'
+    volumes:
+      - ./portal:/usr/share/nginx/html:ro
+    networks:
+      - portal_network
+    restart: unless-stopped
+
+volumes:
+  portal-data:

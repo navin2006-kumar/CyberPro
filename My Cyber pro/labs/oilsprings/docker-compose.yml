@@ -1,0 +1,145 @@
+name: oilsprings
+
+networks:
+  l2_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.2.0/24
+
+  l3_scada_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.3.0/24
+  
+  l3_security_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.4.0/24
+  
+  l3_pentest_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.5.0/24
+
+services:
+  plc:
+    build: ./plc/
+    container_name: oilsprings_plc
+    networks:
+      l2_network:
+        ipv4_address: 192.168.2.10
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  scada:
+    build: ./scada/
+    container_name: oilsprings_scada
+    networks:
+      l3_scada_network:
+        ipv4_address: 192.168.3.20
+      l2_network:
+        ipv4_address: 192.168.2.20
+    ports:
+      - '8081:1880'
+    restart: unless-stopped
+    environment:
+      - NODE_RED_ENABLE_PROJECTS=true
+      - TZ=UTC
+    volumes:
+      - scada-data:/data
+    depends_on:
+      - plc
+
+  ews:
+    build: ./ews/
+    container_name: oilsprings_ews
+    networks:
+      l3_scada_network:
+        ipv4_address: 192.168.3.11
+    ports:
+      - "8082:5900"
+      - "8083:6080"
+    restart: unless-stopped
+    environment:
+      - VNC_PASSWORD=labshock
+      - RESOLUTION=1280x720
+
+  ids:
+    build: ./ids/
+    container_name: oilsprings_ids
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    privileged: true
+    networks:
+      l3_security_network:
+        ipv4_address: 192.168.4.41
+      l2_network:
+        ipv4_address: 192.168.2.41
+    ports:
+      - "8084:8000"
+    restart: unless-stopped
+    environment:
+      - MONITOR_INTERFACE=eth1
+
+  collector:
+    build: ./collector/
+    container_name: oilsprings_collector
+    networks:
+      l3_security_network:
+        ipv4_address: 192.168.4.40
+      l3_scada_network:
+        ipv4_address: 192.168.3.40
+    ports:
+      - "8085:5000"
+    restart: unless-stopped
+    volumes:
+      - collector-logs:/app/logs
+
+  pentest:
+    build: ./pentest/
+    container_name: oilsprings_pentest
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    networks:
+      l3_pentest_network:
+        ipv4_address: 192.168.5.50
+    ports:
+      - "2222:22"
+      - "8086:7681"
+    restart: unless-stopped
+    environment:
+      - ROOT_PASSWORD=toor
+
+  router:
+    build: ./router/
+    container_name: oilsprings_router
+    cap_add:
+      - NET_ADMIN
+    networks:
+      l2_network:
+        ipv4_address: 192.168.2.2
+      l3_scada_network:
+        ipv4_address: 192.168.3.2
+      l3_security_network:
+        ipv4_address: 192.168.4.2
+      l3_pentest_network:
+        ipv4_address: 192.168.5.2
+    ports:
+      - "8087:8080"
+    restart: unless-stopped
+
+volumes:
+  scada-data:
+  collector-logs:

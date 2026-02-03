@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OilSprings Network Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+
+        .packets-table {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+        }
+
+        .protocol-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .protocol-modbus {
+            background: #4CAF50;
+        }
+
+        .protocol-s7 {
+            background: #2196F3;
+        }
+
+        .protocol-opcua {
+            background: #FF9800;
+        }
+
+        .protocol-other {
+            background: #9E9E9E;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🛡️ OilSprings Network Monitor</h1>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Modbus Traffic</div>
+                <div class="stat-value" id="modbus-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">S7 Traffic</div>
+                <div class="stat-value" id="s7-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">OPC UA Traffic</div>
+                <div class="stat-value" id="opcua-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Other Traffic</div>
+                <div class="stat-value" id="other-count">0</div>
+            </div>
+        </div>
+
+        <div class="packets-table">
+            <h2 style="margin-bottom: 15px;">Recent Packets</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Source</th>
+                        <th>Destination</th>
+                        <th>Protocol</th>
+                        <th>Ports</th>
+                        <th>Length</th>
+                    </tr>
+                </thead>
+                <tbody id="packets-body">
+                    <tr>
+                        <td colspan="6" style="text-align: center;">Waiting for packets...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function updateStats() {
+            fetch('/api/stats')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('modbus-count').textContent = data.modbus;
+                    document.getElementById('s7-count').textContent = data.s7;
+                    document.getElementById('opcua-count').textContent = data.opcua;
+                    document.getElementById('other-count').textContent = data.other;
+                });
+        }
+
+        function updatePackets() {
+            fetch('/api/packets')
+                .then(r => r.json())
+                .then(packets => {
+                    const tbody = document.getElementById('packets-body');
+                    if (packets.length === 0) return;
+
+                    tbody.innerHTML = packets.reverse().slice(0, 20).map(p => {
+                        const time = new Date(p.timestamp * 1000).toLocaleTimeString();
+                        const ports = p.sport && p.dport ? `${p.sport} → ${p.dport}` : '-';
+                        return `
+                            <tr>
+                                <td>${time}</td>
+                                <td>${p.src}</td>
+                                <td>${p.dst}</td>
+                                <td><span class="protocol-badge protocol-${p.protocol}">${p.protocol.toUpperCase()}</span></td>
+                                <td>${ports}</td>
+                                <td>${p.length} bytes</td>
+                            </tr>
+                        `;
+                    }).join('');
+                });
+        }
+
+        // Update every 2 seconds
+        setInterval(() => {
+            updateStats();
+            updatePackets();
+        }, 2000);
+
+        // Initial load
+        updateStats();
+        updatePackets();
+    </script>
+</body>
+
+</html>

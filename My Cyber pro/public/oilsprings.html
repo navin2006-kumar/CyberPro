@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OilSprings Lab Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00d4ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.8;
+        }
+
+        .status-bar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .status-item {
+            text-align: center;
+        }
+
+        .status-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .status-label {
+            font-size: 0.9em;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .service-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+            border-color: #00ff88;
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
+        }
+
+        .service-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .service-name {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .service-desc {
+            opacity: 0.8;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+        }
+
+        .service-port {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .service-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-online {
+            background: #00ff88;
+            color: #000;
+        }
+
+        .status-offline {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(45deg, #00d4ff, #00ff88);
+            color: #000;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .network-diagram {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .network-diagram h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .network-layer {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #00ff88;
+        }
+
+        .network-layer h3 {
+            margin-bottom: 10px;
+            color: #00ff88;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #00d4ff;
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Platform</a>
+
+        <header>
+            <h1>🛢️ OilSprings Lab Portal</h1>
+            <p class="subtitle">Complete Industrial Cyber Security Environment</p>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-value" id="services-count">7</div>
+                <div class="status-label">Services</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="networks-count">4</div>
+                <div class="status-label">Networks</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="protocols-count">5+</div>
+                <div class="status-label">Protocols</div>
+            </div>
+        </div>
+
+        <div class="services-grid">
+            <div class="service-card" onclick="openService('http://localhost:8080')">
+                <div class="service-icon">🏭</div>
+                <div class="service-name">PLC</div>
+                <div class="service-desc">OpenPLC Runtime with Modbus/TCP server</div>
+                <div class="service-port">Port: 8080</div>
+                <div class="service-status status-online" id="status-plc">Online</div>
+                <button class="btn">Access PLC</button>
+            </div>
+
+            <div class="service-card" onclick="openService('http://localhost:8081')">
+                <div class="service-icon">📊</div>
+                <div class="service-name">SCADA</div>
+                <div class="service-desc">Node-RED Dashboard & HMI Control</div>
+                <div class="service-port">Port: 8081</div>
+                <div class="service-status status-online" id="status-scada">Online</div>
+                <button class="btn">Access SCADA</button>
+            </div>
+
+            <div class="service-card" onclick="openService('http://localhost:8083')">
+                <div class="service-icon">🖥️</div>
+                <div class="service-name">Engineering Workstation</div>
+                <div class="service-desc">VNC Desktop for PLC Programming</div>
+                <div class="service-port">Port: 8083</div>
+                <div class="service-status status-online" id="status-ews">Online</div>
+                <button class="btn">Access EWS</button>
+            </div>
+
+            <div class="service-card" onclick="openService('http://localhost:8084')">
+                <div class="service-icon">🛡️</div>
+                <div class="service-name">Network Monitor</div>
+                <div class="service-desc">IDS with Protocol Detection</div>
+                <div class="service-port">Port: 8084</div>
+                <div class="service-status status-online" id="status-ids">Online</div>
+                <button class="btn">Access Monitor</button>
+            </div>
+
+            <div class="service-card" onclick="openService('http://localhost:8085')">
+                <div class="service-icon">📝</div>
+                <div class="service-name">Log Collector</div>
+                <div class="service-desc">Centralized Log Aggregation</div>
+                <div class="service-port">Port: 8085</div>
+                <div class="service-status status-online" id="status-collector">Online</div>
+                <button class="btn">Access Logs</button>
+            </div>
+
+            <div class="service-card" onclick="openService('http://localhost:8086')">
+                <div class="service-icon">🔓</div>
+                <div class="service-name">Pentest Station</div>
+                <div class="service-desc">Kali Linux with OT Tools</div>
+                <div class="service-port">Port: 8086</div>
+                <div class="service-status status-online" id="status-pentest">Online</div>
+                <button class="btn">Access Terminal</button>
+            </div>
+
+            <div class="service-card" onclick="openService('http://localhost:8087')">
+                <div class="service-icon">🌐</div>
+                <div class="service-name">Router</div>
+                <div class="service-desc">Network Segmentation Control</div>
+                <div class="service-port">Port: 8087</div>
+                <div class="service-status status-online" id="status-router">Online</div>
+                <button class="btn">Access Router</button>
+            </div>
+        </div>
+
+        <div class="network-diagram">
+            <h2>Network Architecture</h2>
+
+            <div class="network-layer">
+                <h3>L2 Network (192.168.2.0/24) - Field Level</h3>
+                <p>PLC, SCADA Field Interface, IDS Monitor, Router Gateway</p>
+            </div>
+
+            <div class="network-layer">
+                <h3>L3 SCADA Network (192.168.3.0/24) - Control Level</h3>
+                <p>SCADA Control, Engineering Workstation, Log Collector, Router Gateway</p>
+            </div>
+
+            <div class="network-layer">
+                <h3>L3 Security Network (192.168.4.0/24) - Security Zone</h3>
+                <p>IDS/Monitor, Log Collector, Router Gateway</p>
+            </div>
+
+            <div class="network-layer">
+                <h3>L3 Pentest Network (192.168.5.0/24) - Testing Zone</h3>
+                <p>Pentest Station, Router Gateway</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openService(url) {
+            window.open(url, '_blank');
+        }
+
+        // Check service status
+        async function checkServiceStatus(port, statusId) {
+            try {
+                const response = await fetch(`http://localhost:${port}`, { mode: 'no-cors' });
+                document.getElementById(statusId).className = 'service-status status-online';
+                document.getElementById(statusId).textContent = 'Online';
+            } catch (error) {
+                document.getElementById(statusId).className = 'service-status status-offline';
+                document.getElementById(statusId).textContent = 'Offline';
+            }
+        }
+
+        // Check all services on load
+        window.addEventListener('load', () => {
+            checkServiceStatus(8080, 'status-plc');
+            checkServiceStatus(8081, 'status-scada');
+            checkServiceStatus(8083, 'status-ews');
+            checkServiceStatus(8084, 'status-ids');
+            checkServiceStatus(8085, 'status-collector');
+            checkServiceStatus(8086, 'status-pentest');
+            checkServiceStatus(8087, 'status-router');
+        });
+    </script>
+</body>
+
+</html>
