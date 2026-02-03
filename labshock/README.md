@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/zakharb/labshock">
-  <img src="img/labshock-logo.gif" alt="logo" />
+ 
 </p>
     
 <br>
@@ -27,30 +27,12 @@ Labshock is a controlled OT security laboratory.
 oLabshock provides a ready-to-use environment to learn, simulate and test defensive strategies.
 
 
-<p align="center">
-  
-  <a href="https://labshocksecurity.com/">
-    <img src="https://shields.io/badge/Labshock-Website-yellow?logo=labshock&style=for-the-badge" alt="Labshock Website"/>
-  </a>
-  
-  <a href="https://www.youtube.com/playlist?list=PLC93sRj_3EZ2Ydl1t5Kr6p4klYDLDEQUF">
-    <img src="https://shields.io/badge/Youtube-Videos-yellow?logo=labshock&style=for-the-badge" alt="YouTube Videos"/>
-  </a>
-  
-  <a href="https://discord.gg/bpmaQFfW76">
-    <img src="https://shields.io/badge/Discord-Support-yellow?logo=labshock&style=for-the-badge" alt="Support Discord"/>
-  </a>
-  
-  <a href="https://www.linkedin.com/in/zakharb/">
-    <img src="https://shields.io/badge/Linkedin-Updates-yellow?logo=labshock&style=for-the-badge" alt="LinkedIn Updates"/>
-  </a>
 
-</p>
 
 <p align="center">
   ⭐ please give Labshock a Star ⭐
   <br><br>
-  <img src="img/lab-diagram.png" alt="Labshock Diagram" />
+ 
 </p>
 
 
@@ -65,7 +47,7 @@ Instead of mastering a single lab, users progress through a world that reflects 
 - across maturity levels   
 
 The World provides structure, continuity, and increasing complexity - while remaining grounded in real systems and events.
-<img alt="world of labshock" src="https://github.com/user-attachments/assets/988b8790-ad50-4f5d-a870-61c2419fa83e" />
+
 
 
 ## 🟨 Key Capabilities
@@ -79,7 +61,7 @@ The World provides structure, continuity, and increasing complexity - while rema
 - progressive learning from fundamentals to advanced detection  
 - repeatable, isolated & controlled lab environments  
 
-<img alt="world of labshock" src="https://github.com/user-attachments/assets/6065aa03-94f4-4c1c-9046-55d0caa0d504" />
+
 
 ## 🟨 Learning & Testing Philosophy
 > how it works
@@ -92,7 +74,7 @@ Labshock is built around event-driven OT security understanding:
 - build detection logic grounded in operational reality  
 
 This approach creates skills that transfer directly to real OT environments.
-<img  alt="Key Capabilities" src="https://github.com/user-attachments/assets/3532a71c-c94d-4e2e-90cc-17efba3d3ed2" />
+
 
 <br><br> 
 ## 🟨 Who Is It For
@@ -125,7 +107,7 @@ min: `CPU 2` | `RAM 2G` | `HDD 10G`
 max: `CPU 4` | `RAM 8G` | `HDD 20G`  
 
 <p align="center">
-  <img src="img/min-req.png" />
+ 
 </p>
 
 ## 🟨 Trial License Info
@@ -167,9 +149,7 @@ Main Portal Sections:
 - launch and control OT labs, start and stop services, and interact with logs and traffic
 - build custom lab setups to experiment freely and reproduce real-world scenarios
 
-<p align="center">
-  <img  alt="portal" src="https://github.com/user-attachments/assets/2eb7782f-3c9f-4ee3-8eed-484a7cec8e30" />
-</p>
+
 
 
 ### 🔸 SCADA
@@ -186,9 +166,7 @@ SCADA supports protocols:
 
 Usage: [wiki](https://github.com/zakharb/labshock/wiki/SCADA-service)
 
-<p align="center">
-  <img alt="scada" src="https://github.com/user-attachments/assets/a9042866-95c3-44d9-972c-a61d150d6525" />
-</p>
+
 
 ### 🔸 PLC
 > brain of Labshock
@@ -202,9 +180,7 @@ PLC supports all five languages defined in the IEC 61131-3 standard:
 
 Usage: [wiki](https://github.com/zakharb/labshock/wiki/PLC-service)
 
-<p align="center">
-  <img src="img/plc.png" alt="plc" />
-</p>
+
 
 <br><br>
 ### 🔸 Pentest Fury
@@ -225,9 +201,7 @@ Usage: [wiki](https://github.com/zakharb/labshock/wiki/Pentest-service)
 
 > ⚠️ Disclaimer: This tool is intended for use only in the Labshock virtual environment. The developer is not responsible for any misuse or unauthorized access attempts. Using this tool against systems without explicit permission may violate local laws or regulations.
 
-<p align="center">
-  <img src="img/pentest.png" alt="pentest" />
-</p>
+
 
 <br><br>
 ### 🔸 Network Swiftness
@@ -245,9 +219,7 @@ Labshock includes Network Swiftness for real-time network monitoring and analysi
 
 Usage: [wiki](https://github.com/zakharb/labshock/wiki/IDS-service)
 
-<p align="center">
-  <img src="img/ids.png" alt="ids" />
-</p>
+
 
 
 <br><br>
@@ -264,7 +236,7 @@ Efficient OT data collection and forwarding:
 
 Usage: [wiki](https://github.com/zakharb/labshock/wiki/Collector-service)
 
-<p align="center"> <img src="img/collector.png" alt="collector" /> </p>
+
 
 <br><br>
 ### 🔸 EWS
@@ -279,9 +251,6 @@ Engineering Station for programming SCADA and PLC:
 
 Usage: [wiki](https://github.com/zakharb/labshock/wiki/EWS-service)
 
-<p align="center">
-  <img src="img/ews.png" alt="ews" />
-</p>
 
 
 <br><br>
@@ -292,9 +261,7 @@ It's also possible to run `Windows` inside Labshock:
 - use at your own risk & effort
 
 
-<p align="center">
-  <img src="img/ews-win.png" alt="ews-win" />
-</p>
+
 
 <br><br>
 ### 🔸 Firewall
@@ -307,9 +274,7 @@ Firewall service allows you to simulate and explore network segmentation in OT e
 - test segmentation controls
 - block / allow traffic
 
-<p align="center">
-  <img src="img/firewall.png" alt="firewall" />
-</p>
+
 
 <br><br>
 ### 🔸 Transfer
@@ -340,10 +305,10 @@ Labshock can forward OT events directly into your SIEM:
 - send events from OpenPLC, SCADA, IDS, and more
 - real OT data for correlation and detection testing
 
-<p align="center"> <img src="https://github.com/user-attachments/assets/86b98adb-3abc-48ac-807f-bba046ac097c" />  </p>
+
 
 - login to your SIEM (here is Splunk)
-<p align="center"> <img src="https://github.com/user-attachments/assets/6097cdcb-92be-4cde-b33f-407ada7eb7bf" />  </p>
+
 
 <br><br>
 ## 🟨 Use Policy
@@ -360,4 +325,5 @@ Labshock contains open-source and proprietary components.
 For any commercial use required Enterprise License.
 Pro License is only for personal individual isage, not company.
 See the [LICENSE](LICENSE) file for details.  
+
 
