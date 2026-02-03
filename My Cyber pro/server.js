@@ -10,6 +10,7 @@ const path = require('path');
 
 const Database = require('./db');
 const LabManager = require('./labManager');
+const ChatbotService = require('./chatbot');
 
 // Initialize Express app
 const app = express();
@@ -20,6 +21,7 @@ const wss = new WebSocket.Server({ server });
 const PORT = process.env.PORT || 3000;
 const db = new Database(process.env.DB_PATH);
 const labManager = new LabManager(db);
+const chatbot = new ChatbotService();
 
 // Middleware
 app.use(cors());
@@ -251,6 +253,44 @@ app.get('/api/system/status', requireAuth, async (req, res) => {
         });
     } catch (error) {
         console.error('Error getting system status:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Chatbot routes
+app.post('/api/chatbot/message', requireAuth, async (req, res) => {
+    try {
+        const { message, context } = req.body;
+
+        if (!message) {
+            return res.status(400).json({ success: false, message: 'Message is required' });
+        }
+
+        const result = await chatbot.processMessage(req.session.userId, message, context || {});
+        res.json(result);
+    } catch (error) {
+        console.error('Chatbot error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+app.get('/api/chatbot/history', requireAuth, (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 10;
+        const history = chatbot.getConversationHistory(req.session.userId, limit);
+        res.json({ success: true, history });
+    } catch (error) {
+        console.error('Error getting chat history:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+app.post('/api/chatbot/reset', requireAuth, (req, res) => {
+    try {
+        const result = chatbot.resetConversation(req.session.userId);
+        res.json(result);
+    } catch (error) {
+        console.error('Error resetting chat:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
