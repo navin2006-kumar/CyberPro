@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCADA HMI - Modbus Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 2em;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #00ff88;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel h2 {
+            margin-bottom: 20px;
+            color: #00ff88;
+            font-size: 1.3em;
+            border-bottom: 2px solid rgba(0, 255, 136, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .register-list, .coil-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .register-item, .coil-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .register-item:hover, .coil-item:hover {
+            background: rgba(0, 255, 136, 0.1);
+            transform: translateX(5px);
+        }
+
+        .register-label, .coil-label {
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .register-value {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .coil-toggle {
+            width: 60px;
+            height: 30px;
+            background: #555;
+            border-radius: 15px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .coil-toggle.active {
+            background: #00ff88;
+        }
+
+        .coil-toggle::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: left 0.3s;
+        }
+
+        .coil-toggle.active::after {
+            left: 33px;
+        }
+
+        .control-panel {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        input[type="number"] {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            color: #fff;
+            font-size: 1em;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            color: #0f2027;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1em;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .timestamp {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .alert {
+            background: rgba(255, 68, 68, 0.2);
+            border-left: 4px solid #ff4444;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: rgba(0, 255, 136, 0.2);
+            border-left: 4px solid #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                🏭 SCADA HMI Interface
+                <span class="status-indicator" id="statusIndicator"></span>
+            </h1>
+            <div class="timestamp" id="timestamp">--:--:--</div>
+        </header>
+
+        <div id="alertContainer"></div>
+
+        <div class="grid">
+            <!-- Holding Registers Panel -->
+            <div class="panel">
+                <h2>📊 Holding Registers (0-9)</h2>
+                <div class="register-list" id="registerList"></div>
+                <div class="control-panel">
+                    <input type="number" id="regAddress" placeholder="Address" min="0" max="9">
+                    <input type="number" id="regValue" placeholder="Value" min="0" max="65535">
+                    <button onclick="writeRegister()">Write</button>
+                </div>
+            </div>
+
+            <!-- Coils Panel -->
+            <div class="panel">
+                <h2>💡 Coils (0-7)</h2>
+                <div class="coil-list" id="coilList"></div>
+            </div>
+
+            <!-- System Status Panel -->
+            <div class="panel">
+                <h2>⚙️ System Status</h2>
+                <div class="register-list">
+                    <div class="register-item">
+                        <span class="register-label">Connection:</span>
+                        <span class="register-value" id="connectionStatus">Disconnected</span>
+                    </div>
+                    <div class="register-item">
+                        <span class="register-label">Last Update:</span>
+                        <span class="register-value" id="lastUpdate">Never</span>
+                    </div>
+                    <div class="register-item">
+                        <span class="register-label">Active Clients:</span>
+                        <span class="register-value" id="activeClients">0</span>
+                    </div>
+                </div>
+                <div class="control-panel">
+                    <button onclick="refreshData()">🔄 Refresh Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        const API_BASE = '';
+
+        // Initialize WebSocket
+        function initWebSocket() {
+            ws = new WebSocket(`ws://${window.location.host}`);
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                updateConnectionStatus(true);
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                updateConnectionStatus(false);
+                setTimeout(initWebSocket, 3000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            if (data.type === 'status_update') {
+                updateRegisters(data.registers);
+                updateCoils(data.coils);
+                document.getElementById('lastUpdate').textContent = new Date(data.timestamp).toLocaleTimeString();
+            } else if (data.type === 'coil_changed' || data.type === 'register_changed') {
+                refreshData();
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const status = document.getElementById('connectionStatus');
+            
+            if (connected) {
+                indicator.classList.add('connected');
+                status.textContent = 'Connected';
+                status.style.color = '#00ff88';
+            } else {
+                indicator.classList.remove('connected');
+                status.textContent = 'Disconnected';
+                status.style.color = '#ff4444';
+            }
+        }
+
+        function updateRegisters(registers) {
+            const list = document.getElementById('registerList');
+            list.innerHTML = registers.map((value, index) => `
+                <div class="register-item">
+                    <span class="register-label">Register ${index}:</span>
+                    <span class="register-value">${value}</span>
+                </div>
+            `).join('');
+        }
+
+        function updateCoils(coils) {
+            const list = document.getElementById('coilList');
+            list.innerHTML = coils.map((value, index) => `
+                <div class="coil-item">
+                    <span class="coil-label">Coil ${index}:</span>
+                    <div class="coil-toggle ${value ? 'active' : ''}" onclick="toggleCoil(${index})"></div>
+                </div>
+            `).join('');
+        }
+
+        async function refreshData() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateRegisters(data.registers);
+                    updateCoils(data.coils);
+                    updateConnectionStatus(data.connected);
+                    showAlert('Data refreshed successfully', 'success');
+                }
+            } catch (error) {
+                showAlert('Failed to refresh data: ' + error.message, 'error');
+            }
+        }
+
+        async function writeRegister() {
+            const address = parseInt(document.getElementById('regAddress').value);
+            const value = parseInt(document.getElementById('regValue').value);
+
+            if (isNaN(address) || isNaN(value)) {
+                showAlert('Please enter valid address and value', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/registers/${address}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showAlert(`Register ${address} set to ${value}`, 'success');
+                    document.getElementById('regAddress').value = '';
+                    document.getElementById('regValue').value = '';
+                } else {
+                    showAlert('Failed to write register: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function toggleCoil(address) {
+            try {
+                // Get current state
+                const response = await fetch(`${API_BASE}/api/coils/${address}/1`);
+                const data = await response.json();
+                const currentValue = data.coils[0];
+
+                // Toggle
+                const toggleResponse = await fetch(`${API_BASE}/api/coils/${address}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value: !currentValue })
+                });
+
+                const result = await toggleResponse.json();
+                if (result.success) {
+                    showAlert(`Coil ${address} ${result.value ? 'ON' : 'OFF'}`, 'success');
+                }
+            } catch (error) {
+                showAlert('Error toggling coil: ' + error.message, 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert ${type === 'success' ? 'success' : ''}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+
+            setTimeout(() => alert.remove(), 3000);
+        }
+
+        function updateTimestamp() {
+            document.getElementById('timestamp').textContent = new Date().toLocaleTimeString();
+        }
+
+        // Initialize
+        initWebSocket();
+        refreshData();
+        setInterval(updateTimestamp, 1000);
+    </script>
+</body>
+</html>

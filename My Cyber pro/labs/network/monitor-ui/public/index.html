@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Monitor - OT Traffic Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 2em;
+            color: #00d4ff;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel h2 {
+            margin-bottom: 20px;
+            color: #00ff88;
+            font-size: 1.3em;
+            border-bottom: 2px solid rgba(0, 255, 136, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00d4ff;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+
+        .chart-container {
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .connection-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .connection-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .connection-item:hover {
+            background: rgba(0, 255, 136, 0.1);
+            transform: translateX(5px);
+        }
+
+        .protocol-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .protocol-modbus {
+            background: #ff6b6b;
+        }
+
+        .protocol-http {
+            background: #4ecdc4;
+        }
+
+        .protocol-https {
+            background: #45b7d1;
+        }
+
+        .protocol-dns {
+            background: #f9ca24;
+        }
+
+        .protocol-other {
+            background: #95afc0;
+        }
+
+        .state-badge {
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.75em;
+        }
+
+        .state-established {
+            background: #00ff88;
+            color: #000;
+        }
+
+        .state-time-wait {
+            background: #ffa500;
+            color: #000;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 136, 0.5);
+            border-radius: 10px;
+        }
+
+        .protocol-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .protocol-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .protocol-name {
+            min-width: 100px;
+            font-size: 0.9em;
+        }
+
+        .bar-container {
+            flex: 1;
+            height: 25px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 Network Traffic Monitor</h1>
+            <p style="color: #888; margin-top: 10px;">Real-time OT/ICS Network Analysis</p>
+        </header>
+
+        <div class="grid">
+            <!-- Statistics Panel -->
+            <div class="panel">
+                <h2>📊 Traffic Statistics</h2>
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Packets</div>
+                        <div class="stat-value" id="totalPackets">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Bytes Transferred</div>
+                        <div class="stat-value" id="bytesTransferred">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Active Connections</div>
+                        <div class="stat-value" id="activeConnections">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Packets/Sec</div>
+                        <div class="stat-value" id="packetsPerSec">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Protocol Distribution -->
+            <div class="panel">
+                <h2>🔍 Protocol Distribution</h2>
+                <div class="protocol-chart" id="protocolChart"></div>
+            </div>
+        </div>
+
+        <!-- Traffic Chart -->
+        <div class="panel" style="margin-bottom: 30px;">
+            <h2>📈 Traffic Over Time</h2>
+            <div class="chart-container">
+                <canvas id="trafficChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Active Connections -->
+        <div class="panel">
+            <h2>🔗 Active Connections</h2>
+            <div class="connection-list" id="connectionList"></div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let trafficData = [];
+        let lastPacketCount = 0;
+        let lastUpdateTime = Date.now();
+
+        // Initialize WebSocket
+        function initWebSocket() {
+            ws = new WebSocket(`ws://${window.location.host}`);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'stats_update') {
+                    updateStats(data.stats);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected, reconnecting...');
+                setTimeout(initWebSocket, 3000);
+            };
+        }
+
+        function updateStats(stats) {
+            // Update stat cards
+            document.getElementById('totalPackets').textContent = Math.floor(stats.totalPackets);
+            document.getElementById('bytesTransferred').textContent = formatBytes(stats.bytesTransferred);
+            document.getElementById('activeConnections').textContent = stats.activeConnections;
+
+            // Calculate packets per second
+            const now = Date.now();
+            const timeDiff = (now - lastUpdateTime) / 1000;
+            const packetDiff = stats.totalPackets - lastPacketCount;
+            const packetsPerSec = timeDiff > 0 ? (packetDiff / timeDiff).toFixed(1) : 0;
+            document.getElementById('packetsPerSec').textContent = packetsPerSec;
+
+            lastPacketCount = stats.totalPackets;
+            lastUpdateTime = now;
+
+            // Update protocol chart
+            updateProtocolChart({
+                'HTTP/HTTPS': stats.httpPackets,
+                'Modbus/TCP': stats.modbusPackets,
+                'ICMP': stats.icmpPackets,
+                'Other': stats.otherPackets
+            });
+
+            // Update traffic chart
+            trafficData.push({
+                time: new Date().toLocaleTimeString(),
+                packets: Math.floor(stats.totalPackets)
+            });
+            if (trafficData.length > 30) trafficData.shift();
+            updateTrafficChart();
+        }
+
+        function updateProtocolChart(protocols) {
+            const total = Object.values(protocols).reduce((a, b) => a + b, 0);
+            const chart = document.getElementById('protocolChart');
+
+            chart.innerHTML = Object.entries(protocols).map(([name, count]) => {
+                const percentage = total > 0 ? (count / total * 100).toFixed(1) : 0;
+                return `
+                    <div class="protocol-bar">
+                        <div class="protocol-name">${name}</div>
+                        <div class="bar-container">
+                            <div class="bar-fill" style="width: ${percentage}%">
+                                ${Math.floor(count)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateTrafficChart() {
+            const canvas = document.getElementById('trafficChart');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.offsetWidth;
+            const height = canvas.height = canvas.offsetHeight;
+
+            ctx.clearRect(0, 0, width, height);
+
+            if (trafficData.length < 2) return;
+
+            const maxPackets = Math.max(...trafficData.map(d => d.packets));
+            const xStep = width / (trafficData.length - 1);
+            const yScale = height / (maxPackets || 1);
+
+            // Draw line
+            ctx.beginPath();
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
+
+            trafficData.forEach((point, i) => {
+                const x = i * xStep;
+                const y = height - (point.packets * yScale);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+
+            ctx.stroke();
+
+            // Draw fill
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(0, 255, 136, 0.2)';
+            ctx.fill();
+        }
+
+        async function loadConnections() {
+            try {
+                const response = await fetch('/api/connections');
+                const data = await response.json();
+
+                if (data.success) {
+                    updateConnectionList(data.connections);
+                }
+            } catch (error) {
+                console.error('Error loading connections:', error);
+            }
+        }
+
+        function updateConnectionList(connections) {
+            const list = document.getElementById('connectionList');
+            list.innerHTML = connections.map(conn => `
+                <div class="connection-item">
+                    <div>
+                        <div style="font-weight: bold;">${conn.src} → ${conn.dst}:${conn.port}</div>
+                        <div style="font-size: 0.85em; color: #888; margin-top: 5px;">
+                            <span class="protocol-badge protocol-${conn.protocol.toLowerCase().replace('/', '-')}">${conn.protocol}</span>
+                            <span class="state-badge state-${conn.state.toLowerCase().replace('_', '-')}">${conn.state}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Initialize
+        initWebSocket();
+        loadConnections();
+        setInterval(loadConnections, 5000);
+
+        // Fetch initial stats
+        fetch('/api/stats')
+            .then(r => r.json())
+            .then(data => updateStats(data.stats));
+    </script>
+</body>
+
+</html>
