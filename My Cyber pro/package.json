@@ -20,15 +20,16 @@
   "author": "Cyber Lab Platform",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "dockerode": "^4.0.0",
-    "ws": "^8.14.2",
-    "sqlite3": "^5.1.6",
+    "@google/generative-ai": "^0.1.3",
     "bcrypt": "^5.1.1",
-    "express-session": "^1.17.3",
-    "dotenv": "^16.3.1",
     "body-parser": "^1.20.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "dockerode": "^4.0.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "sqlite3": "^5.1.6",
+    "ws": "^8.14.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

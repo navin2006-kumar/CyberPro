@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 class ChatbotService {
     constructor() {
@@ -10,7 +11,32 @@ class ChatbotService {
         // Conversation history (in-memory, could be moved to database)
         this.conversations = new Map(); // userId -> messages[]
 
-        // Intent patterns
+        // AI Configuration
+        this.aiProvider = process.env.CHATBOT_AI_PROVIDER || 'none';
+        this.temperature = parseFloat(process.env.CHATBOT_TEMPERATURE) || 0.7;
+        this.maxTokens = parseInt(process.env.CHATBOT_MAX_TOKENS) || 500;
+
+        // Initialize Gemini if configured
+        if (this.aiProvider === 'gemini' && process.env.GEMINI_API_KEY) {
+            try {
+                this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+                this.model = this.genAI.getGenerativeModel({
+                    model: process.env.CHATBOT_MODEL || 'gemini-pro',
+                    generationConfig: {
+                        temperature: this.temperature,
+                        maxOutputTokens: this.maxTokens,
+                    }
+                });
+                console.log('✓ Gemini AI chatbot initialized');
+            } catch (error) {
+                console.warn('⚠️ Gemini AI initialization failed, using fallback:', error.message);
+                this.aiProvider = 'none';
+            }
+        } else {
+            console.log('✓ Pattern-based chatbot initialized (no AI API)');
+        }
+
+        // Intent patterns for fallback
         this.patterns = {
             greeting: /^(hi|hello|hey|greetings|good\s+(morning|afternoon|evening))/i,
             help: /(help|stuck|don't know|confused|how do i|how to)/i,
@@ -26,6 +52,60 @@ class ChatbotService {
             security: /(security|attack|defend|protect|threat)/i,
             next_steps: /(what next|what should i|where to start|learning path)/i
         };
+
+        // System prompt for AI
+        this.systemPrompt = this.buildSystemPrompt();
+    }
+
+    buildSystemPrompt() {
+        return `You are an expert OT/ICS security instructor teaching students about industrial cybersecurity.
+
+Your expertise includes:
+- SCADA systems and Modbus protocol
+- PLC programming and industrial control
+- OT network monitoring and analysis
+- ICS penetration testing
+- Security best practices for operational technology
+
+Teaching style:
+- Patient and encouraging
+- Step-by-step explanations
+- Use analogies and examples
+- Provide hands-on guidance
+- Safety-first approach
+
+Platform context:
+- Students have access to 4 labs: SCADA, PLC, Network, Pentest
+- All labs run in isolated Docker containers
+- Real industrial protocols are used
+- Login: admin/admin123
+- Labs accessible at http://localhost:8080-8083
+
+Available labs:
+1. SCADA Lab (port 8080): Modbus TCP, HMI interface, register/coil control
+2. PLC Lab (port 8081): OpenPLC runtime, industrial process simulator
+3. Network Lab (port 8082): Traffic monitoring, protocol analysis
+4. Pentest Lab (port 8083): Vulnerable ICS target for security testing
+
+Always:
+✓ Be encouraging and supportive
+✓ Explain concepts clearly with examples
+✓ Provide actionable steps
+✓ Emphasize safety in ICS environments
+✓ Link theory to practice
+✓ Use emojis to make responses engaging
+
+Never:
+✗ Provide dangerous commands without warnings
+✗ Assume advanced knowledge
+✗ Give up on helping students
+✗ Provide overly long responses (keep under 300 words)
+
+Format responses with:
+- **Bold** for important terms
+- Bullet points for lists
+- Step-by-step numbered instructions
+- Emojis for visual appeal`;
     }
 
     async processMessage(userId, message, context = {}) {
@@ -48,8 +128,18 @@ class ChatbotService {
             history.splice(0, history.length - 10);
         }
 
-        // Generate response
-        const response = this.generateResponse(message, context, history);
+        // Try AI response first, fallback to pattern-based
+        let response;
+        try {
+            if (this.aiProvider === 'gemini' && this.model) {
+                response = await this.generateAIResponse(message, context, history);
+            } else {
+                response = this.generatePatternResponse(message, context, history);
+            }
+        } catch (error) {
+            console.error('AI response error, using fallback:', error.message);
+            response = this.generatePatternResponse(message, context, history);
+        }
 
         // Add bot response to history
         history.push({
@@ -61,11 +151,44 @@ class ChatbotService {
         return {
             success: true,
             response,
-            suggestions: this.getSuggestions(message, context)
+            suggestions: this.getSuggestions(message, context),
+            aiProvider: this.aiProvider
         };
     }
 
-    generateResponse(message, context, history) {
+    async generateAIResponse(message, context, history) {
+        try {
+            // Build context-aware prompt
+            let contextInfo = '';
+            if (context.currentLab) {
+                contextInfo = `\n\nCurrent context: User is on the ${context.currentLab} lab page.`;
+            }
+
+            // Build conversation history for context
+            const conversationContext = history.slice(-6).map(msg =>
+                `${msg.role === 'user' ? 'Student' : 'Instructor'}: ${msg.content}`
+            ).join('\n');
+
+            const fullPrompt = `${this.systemPrompt}${contextInfo}
+
+Recent conversation:
+${conversationContext}
+
+Student: ${message}
+
+Instructor:`;
+
+            const result = await this.model.generateContent(fullPrompt);
+            const response = await result.response;
+            return response.text();
+
+        } catch (error) {
+            console.error('Gemini API error:', error);
+            throw error;
+        }
+    }
+
+    generatePatternResponse(message, context, history) {
         const lowerMessage = message.toLowerCase();
 
         // Check for greetings

@@ -314,35 +314,56 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
+// Start server only after database is ready
+async function startServer() {
+    try {
+        // Wait for database to be ready
+        console.log('⏳ Initializing database...');
+        await db.waitForReady();
+        console.log('✓ Database ready');
+
+        // Start HTTP server
+        server.listen(PORT, () => {
+            console.log('\n╔════════════════════════════════════════════════╗');
+            console.log('║     🔬 Cyber Lab Platform - Server Ready      ║');
+            console.log('╚════════════════════════════════════════════════╝\n');
+            console.log(`🌐 Portal:    http://localhost:${PORT}`);
+            console.log(`📚 Docs:      http://localhost:${PORT}/docs`);
+            console.log(`🧪 Labs:      http://localhost:${PORT}/labs`);
+            console.log(`\n✓ Database initialized`);
+            console.log(`✓ Lab manager ready`);
+            console.log(`✓ WebSocket server running`);
+            console.log(`\n📝 Default credentials: admin / admin123\n`);
+        });
+    } catch (error) {
+        console.error('❌ Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
 // Graceful shutdown
 process.on('SIGINT', async () => {
     console.log('\n🛑 Shutting down gracefully...');
 
-    // Stop all running labs
-    await labManager.stopAllLabs();
+    try {
+        // Stop all running labs
+        await labManager.stopAllLabs();
 
-    // Close database
-    db.close();
+        // Close database
+        db.close();
 
-    // Close server
-    server.close(() => {
-        console.log('✓ Server closed');
-        process.exit(0);
-    });
+        // Close server
+        server.close(() => {
+            console.log('✓ Server closed');
+            process.exit(0);
+        });
+    } catch (error) {
+        console.error('Error during shutdown:', error);
+        process.exit(1);
+    }
 });
 
-// Start server
-server.listen(PORT, () => {
-    console.log('\n╔════════════════════════════════════════════════╗');
-    console.log('║     🔬 Cyber Lab Platform - Server Ready      ║');
-    console.log('╚════════════════════════════════════════════════╝\n');
-    console.log(`🌐 Portal:    http://localhost:${PORT}`);
-    console.log(`📚 Docs:      http://localhost:${PORT}/docs`);
-    console.log(`🧪 Labs:      http://localhost:${PORT}/labs`);
-    console.log(`\n✓ Database initialized`);
-    console.log(`✓ Lab manager ready`);
-    console.log(`✓ WebSocket server running`);
-    console.log(`\n📝 Default credentials: admin / admin123\n`);
-});
+// Start the server
+startServer();
 
 module.exports = { app, server, db, labManager };
