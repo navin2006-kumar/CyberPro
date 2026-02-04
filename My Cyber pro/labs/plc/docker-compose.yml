@@ -1,42 +1,15 @@
-name: plc-lab
-networks:
-  plc_network:
-    driver: bridge
-
+version: '3'
 services:
-  # OpenPLC Runtime
-  openplc:
-    image: openplcproject/openplc:latest
-    container_name: plc_runtime
-    networks:
-      - plc_network
+  plc:
+    build: .
     ports:
-      - "8081:8080"
-      - "5021:502"
-    environment:
-      - OPENPLC_RUNTIME=true
-    volumes:
-      - plc-data:/workdir
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # PLC Simulator
-  plc-simulator:
-    image: python:3.11-slim
-    container_name: plc_simulator
-    working_dir: /app
+      - "8080:8080"
+      - "502:502"
     networks:
-      - plc_network
-    volumes:
-      - ./simulator:/app
-    command: sh -c "pip install pymodbus && python simulator.py"
-    depends_on:
-      - openplc
-    restart: unless-stopped
+      - isolated_plc_net
+    cap_add:
+      - NET_ADMIN
 
-volumes:
-  plc-data:
+networks:
+  isolated_plc_net:
+    driver: bridge

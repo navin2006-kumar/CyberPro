@@ -188,7 +188,7 @@ class Database {
                 description: 'Learn SCADA systems with Modbus/TCP protocol simulation',
                 difficulty: 'beginner',
                 docker_compose_path: './labs/scada/docker-compose.yml',
-                ports: JSON.stringify([8080, 502]),
+                ports: JSON.stringify([1881]),
                 services: JSON.stringify([{ name: 'SCADA Dashboard', port: 1881, url: 'http://localhost:1881' }]),
                 learning_objectives: JSON.stringify(['Understand SCADA architecture', 'Learn Modbus protocol basics', 'Monitor industrial processes']),
                 estimated_time: 60
@@ -201,7 +201,7 @@ class Database {
                 description: 'Program and interact with OpenPLC runtime',
                 difficulty: 'intermediate',
                 docker_compose_path: './labs/plc/docker-compose.yml',
-                ports: JSON.stringify([8081, 502]),
+                ports: JSON.stringify([8080, 502]),
                 services: JSON.stringify([{ name: 'PLC Interface', port: 8080, url: 'http://localhost:8080' }]),
                 learning_objectives: JSON.stringify(['Learn PLC programming languages', 'Understand ladder logic', 'Write control programs']),
                 estimated_time: 90
@@ -214,8 +214,8 @@ class Database {
                 description: 'Monitor and analyze OT network traffic',
                 difficulty: 'intermediate',
                 docker_compose_path: './labs/network/docker-compose.yml',
-                ports: JSON.stringify([8082]),
-                services: JSON.stringify([{ name: 'Network Monitor', port: 8080, url: 'http://localhost:8080' }]),
+                ports: JSON.stringify([1443]),
+                services: JSON.stringify([{ name: 'Network Monitor', port: 1443, url: 'https://localhost:1443' }]),
                 learning_objectives: JSON.stringify(['Analyze network traffic', 'Configure firewall rules', 'Detect network intrusions']),
                 estimated_time: 75
             },
@@ -227,8 +227,11 @@ class Database {
                 description: 'Practice offensive security techniques in isolated environment',
                 difficulty: 'advanced',
                 docker_compose_path: './labs/pentest/docker-compose.yml',
-                ports: JSON.stringify([8083, 4444]),
-                services: JSON.stringify([{ name: 'Pentest Terminal', port: 2222, url: 'http://localhost:2222' }]),
+                ports: JSON.stringify([2222, 3443]),
+                services: JSON.stringify([
+                    { name: 'Web Terminal', port: 3443, url: 'https://localhost:3443' },
+                    { name: 'SSH Access', port: 2222, url: 'ssh://localhost:2222' }
+                ]),
                 learning_objectives: JSON.stringify(['Perform reconnaissance', 'Identify vulnerabilities', 'Practice exploitation']),
                 estimated_time: 120
             }

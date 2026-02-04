@@ -56,7 +56,7 @@ class LabManager {
                 });
 
                 await this.db.updateLabStatus(labId, 'running');
-                await this.db.logActivity(userId, 'lab_started', `Started lab: ${lab.name}`);
+                await this.db.logActivity(userId, labId, 'lab_started', `Started lab: ${lab.name}`);
 
                 return {
                     success: true,
@@ -172,7 +172,7 @@ class LabManager {
                         this.activeLabs.delete(labId);
                         await this.db.updateLabStatus(labId, 'stopped');
                         await this.db.endSession(activeLabInfo.sessionId);
-                        await this.db.logActivity(userId, 'lab_stopped', `Stopped lab: ${lab.name}`);
+                        await this.db.logActivity(userId, labId, 'lab_stopped', `Stopped lab: ${lab.name}`);
 
                         resolve({
                             success: true,
@@ -277,7 +277,7 @@ class LabManager {
 
         if (result.success) {
             console.log(`✓ Lab ${labId} recovered successfully`);
-            await this.db.logActivity(userId, 'lab_recovered', `Auto-recovered lab ${labId}`);
+            await this.db.logActivity(userId, labId, 'lab_recovered', `Auto-recovered lab ${labId}`);
         } else {
             console.log(`✗ Failed to recover lab ${labId}`);
             await this.db.updateLabStatus(labId, 'error');

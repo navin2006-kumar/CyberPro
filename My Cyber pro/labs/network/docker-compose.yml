@@ -1,47 +1,16 @@
-name: network-lab
-networks:
-  monitor_network:
-    driver: bridge
-
+version: '3'
 services:
-  # Network Traffic Generator
-  traffic-gen:
-    image: python:3.11-slim
-    container_name: network_traffic_gen
-    working_dir: /app
+  ids:
+    build: .
+    ports:
+      - "1443:1443"
     networks:
-      - monitor_network
-    volumes:
-      - ./traffic-gen:/app
-    command: sh -c "pip install scapy && python traffic_generator.py"
-    restart: unless-stopped
-
-  # Packet Capture & Analysis
-  packet-analyzer:
-    image: nicolaka/netshoot:latest
-    container_name: network_analyzer
-    networks:
-      - monitor_network
+      - isolated_network_net
     cap_add:
       - NET_ADMIN
-    command: sleep infinity
-    restart: unless-stopped
+      - NET_RAW
+    privileged: true
 
-  # Web-based Network Monitor
-  network-monitor:
-    image: node:18-alpine
-    container_name: network_monitor_ui
-    working_dir: /app
-    networks:
-      - monitor_network
-    ports:
-      - "8082:8082"
-    volumes:
-      - ./monitor-ui:/app
-    command: sh -c "npm install && npm start"
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+networks:
+  isolated_network_net:
+    driver: bridge
