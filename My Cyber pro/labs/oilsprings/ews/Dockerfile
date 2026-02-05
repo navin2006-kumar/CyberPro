@@ -1,27 +1,18 @@
-FROM python:3.11-slim
+FROM zakharbz/labshock-ews:v1.0.0
 
-# Install VNC and desktop environment
-RUN apt-get update && apt-get install -y \
-    xfce4 \
-    xfce4-terminal \
-    tigervnc-standalone-server \
-    tigervnc-common \
-    novnc \
-    websockify \
-    curl \
-    wget \
-    git \
-    && rm -rf /var/lib/apt/lists/*
 
-# Set VNC password
-RUN mkdir -p ~/.vnc && \
-    echo "labshock" | vncpasswd -f > ~/.vnc/passwd && \
-    chmod 600 ~/.vnc/passwd
+# entrypoint
+USER root
+COPY entrypoint.sh /entrypoint.sh
+COPY start-vnc.sh /home/engineer/start-vnc.sh
+RUN chmod +x /entrypoint.sh
+RUN chmod +x /home/engineer/start-vnc.sh
 
-# Create startup script
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
+# start app
+ENTRYPOINT ["/entrypoint.sh"]
 
-EXPOSE 5900 6080
+# patch
+COPY ./plc/ /home/engineer/Desktop/PLC/
+COPY ./scada/ /home/engineer/Desktop/SCADA/
 
-CMD ["/start.sh"]
+CMD ["/bin/bash", "-c", "su - engineer -c '/home/engineer/start-vnc.sh'"]

@@ -1,57 +1,42 @@
 @echo off
 echo ========================================
-echo   OilSprings Lab - Quick Launcher
+echo   OilSprings Lab - Clean Start
 echo ========================================
 echo.
 
-cd /d "%~dp0"
+echo [1/3] Stopping and removing old containers/networks...
+docker-compose down 2>nul
 
-echo Checking Docker...
-docker ps >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] Docker is not running!
-    echo Please start Docker Desktop and try again.
-    pause
-    exit /b 1
-)
-
-echo [OK] Docker is running
 echo.
-
-echo Starting OilSprings Lab...
+echo [2/3] Starting OilSprings lab...
 docker-compose up -d
 
-if errorlevel 1 (
-    echo.
-    echo [ERROR] Failed to start lab!
+if %errorlevel% neq 0 (
+    echo [ERROR] Failed to start lab
     pause
     exit /b 1
 )
 
 echo.
-echo ========================================
-echo   Lab Started Successfully!
-echo ========================================
-echo.
-echo Waiting for services to initialize...
-timeout /t 5 /nobreak >nul
-
-echo.
-echo Opening portal in browser...
-start "" "portal.html"
+echo [3/3] Waiting for services to initialize...
+timeout /t 15 /nobreak >nul
 
 echo.
 echo ========================================
-echo   Services Available:
-echo ========================================
-echo   PLC:        http://localhost:8080
-echo   SCADA:      http://localhost:8081
-echo   EWS:        http://localhost:8083
-echo   IDS:        http://localhost:8084
-echo   Collector:  http://localhost:8085
-echo   Pentest:    http://localhost:8086
-echo   Router:     http://localhost:8087
+echo   OilSprings Lab Started!
 echo ========================================
 echo.
-echo Press any key to exit...
-pause >nul
+echo Services available at:
+echo   PLC Controller:     http://localhost:8080
+echo   SCADA Dashboard:    http://localhost:8081
+echo   EWS (VNC):          http://localhost:8083
+echo   IDS Monitor:        http://localhost:8084
+echo   Log Collector:      http://localhost:8085
+echo   Pentest Terminal:   http://localhost:8086
+echo   Router Interface:   http://localhost:8087
+echo.
+echo Check status: docker ps
+echo View logs:    docker logs oilsprings_plc
+echo Stop lab:     docker-compose down
+echo.
+pause

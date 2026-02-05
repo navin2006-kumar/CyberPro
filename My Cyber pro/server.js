@@ -171,17 +171,38 @@ app.get('/api/labs/:id', requireAuth, async (req, res) => {
 
 app.post('/api/labs/:id/start', requireAuth, async (req, res) => {
     try {
-        const result = await labManager.startLab(parseInt(req.params.id), req.session.userId);
+        const labId = parseInt(req.params.id);
+        const lab = await db.getLabById(labId);
 
-        if (result.success) {
-            broadcast({
-                type: 'lab_started',
-                labId: req.params.id,
-                message: 'Lab started successfully'
-            });
+        if (!lab) {
+            return res.status(404).json({ success: false, message: 'Lab not found' });
         }
 
-        res.json(result);
+        const result = await labManager.startLab(labId, req.session.userId);
+
+        if (result.success) {
+            // Parse services from lab configuration
+            const services = lab.services || [];
+
+            broadcast({
+                type: 'lab_started',
+                labId: labId,
+                labName: lab.name,
+                services: services,
+                message: 'Lab started successfully'
+            });
+
+            // Return success with service URLs for auto-opening
+            res.json({
+                success: true,
+                message: 'Lab started successfully',
+                sessionId: result.sessionId,
+                services: services,
+                autoOpen: true
+            });
+        } else {
+            res.json(result);
+        }
     } catch (error) {
         console.error('Error starting lab:', error);
         res.status(500).json({ success: false, message: 'Server error' });

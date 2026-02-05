@@ -181,6 +181,33 @@ class Database {
         // Seed default labs
         const defaultLabs = [
             {
+                name: 'OilSprings Industrial Lab',
+                slug: 'oilsprings',
+                category: 'industrial',
+                type: 'full-range',
+                description: 'Complete OT/ICS security lab with PLC, SCADA, IDS, and penetration testing capabilities',
+                difficulty: 'intermediate',
+                docker_compose_path: './labs/oilsprings/docker-compose.yml',
+                ports: JSON.stringify([8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087]),
+                services: JSON.stringify([
+                    { name: 'PLC Controller', port: 8080, url: 'http://localhost:8080', description: 'OpenPLC Runtime' },
+                    { name: 'SCADA Dashboard', port: 8081, url: 'http://localhost:8081', description: 'Node-RED SCADA Interface' },
+                    { name: 'Engineering Workstation', port: 8083, url: 'http://localhost:8083/vnc.html', description: 'VNC Web Interface' },
+                    { name: 'IDS Monitor', port: 8084, url: 'http://localhost:8084', description: 'Network Intrusion Detection' },
+                    { name: 'Log Collector', port: 8085, url: 'http://localhost:8085', description: 'Centralized Logging' },
+                    { name: 'Pentest Terminal', port: 8086, url: 'http://localhost:8086', description: 'Web-based Terminal' },
+                    { name: 'Router Interface', port: 8087, url: 'http://localhost:8087', description: 'Network Router Config' }
+                ]),
+                learning_objectives: JSON.stringify([
+                    'Understand complete OT/ICS architecture',
+                    'Learn industrial protocol security',
+                    'Practice network segmentation',
+                    'Perform security monitoring',
+                    'Execute penetration testing'
+                ]),
+                estimated_time: 120
+            },
+            {
                 name: 'SCADA Fundamentals',
                 slug: 'scada-basics',
                 category: 'scada',
@@ -192,19 +219,6 @@ class Database {
                 services: JSON.stringify([{ name: 'SCADA Dashboard', port: 1881, url: 'http://localhost:1881' }]),
                 learning_objectives: JSON.stringify(['Understand SCADA architecture', 'Learn Modbus protocol basics', 'Monitor industrial processes']),
                 estimated_time: 60
-            },
-            {
-                name: 'PLC Programming',
-                slug: 'plc-programming',
-                category: 'ics',
-                type: 'plc',
-                description: 'Program and interact with OpenPLC runtime',
-                difficulty: 'intermediate',
-                docker_compose_path: './labs/plc/docker-compose.yml',
-                ports: JSON.stringify([8080, 502]),
-                services: JSON.stringify([{ name: 'PLC Interface', port: 8080, url: 'http://localhost:8080' }]),
-                learning_objectives: JSON.stringify(['Learn PLC programming languages', 'Understand ladder logic', 'Write control programs']),
-                estimated_time: 90
             },
             {
                 name: 'Network Monitoring',

@@ -1,31 +1,13 @@
-FROM python:3.11-slim
+FROM zakharbz/labshock-plc:v1.1.1
 
-# Install OpenPLC dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    build-essential \
-    pkg-config \
-    bison \
-    flex \
-    autoconf \
-    automake \
-    libtool \
-    make \
-    sqlite3 \
-    libsqlite3-dev \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# app data files
+COPY ./appdata/st_files /workdir/webserver/st_files
+COPY ./appdata/openplc.db /workdir/webserver/openplc.db
+COPY ./appdata/active_program /workdir/webserver/active_program
 
-# Clone and build OpenPLC Runtime
-WORKDIR /opt
-RUN git clone https://github.com/thiagoralves/OpenPLC_v3.git openplc && \
-    cd openplc && \
-    ./install.sh linux
+# copy entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Expose OpenPLC web interface and Modbus port
-EXPOSE 8080 502
-
-WORKDIR /opt/openplc
-
-# Start OpenPLC
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["./start_openplc.sh"]

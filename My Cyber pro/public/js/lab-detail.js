@@ -150,6 +150,22 @@ async function startLab() {
             document.getElementById('loadingIndicator').style.display = 'block';
             document.getElementById('startBtn').style.display = 'none';
 
+            // Auto-open services in new tabs (Labshock-style)
+            if (data.autoOpen && data.services && data.services.length > 0) {
+                console.log('Auto-opening services:', data.services);
+
+                // Wait a bit for containers to fully start
+                setTimeout(() => {
+                    data.services.forEach((service, index) => {
+                        // Stagger the opening slightly to avoid browser blocking
+                        setTimeout(() => {
+                            console.log(`Opening service: ${service.name} at ${service.url}`);
+                            window.open(service.url, `_blank_${service.name.replace(/\s+/g, '_')}`);
+                        }, index * 200); // 200ms delay between each tab
+                    });
+                }, 3000); // Wait 3 seconds for containers to initialize
+            }
+
             // Poll for status
             setTimeout(() => updateLabStatus(), 2000);
         } else {

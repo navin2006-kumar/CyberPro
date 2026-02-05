@@ -1,24 +1,13 @@
-FROM nodered/node-red:latest
+FROM zakharbz/labshock-scada:v1.1.0
 
-USER root
 
-# Install additional Node-RED nodes for industrial protocols
-RUN npm install --unsafe-perm --no-update-notifier --no-fund --only=production \
-    node-red-contrib-modbus \
-    node-red-dashboard \
-    node-red-contrib-opcua \
-    node-red-contrib-s7 \
-    node-red-node-serialport
+# entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Copy pre-configured flows
-COPY flows.json /data/flows.json
-COPY settings.js /data/settings.js
+# app data files
+COPY ./appdata /usr/src/app/FUXA/server/_appdata
 
-# Set permissions
-RUN chown -R node-red:node-red /data
-
-USER node-red
-
-EXPOSE 1880
-
-CMD ["npm", "start", "--", "--userDir", "/data"]
+# start app
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["docker-entrypoint.sh", "npm", "start"]

@@ -239,6 +239,11 @@ class LabManager {
     startHealthMonitoring() {
         // Check health every 30 seconds
         setInterval(async () => {
+            // Only check if there are active labs
+            if (this.activeLabs.size === 0) {
+                return;
+            }
+
             for (const [labId, labInfo] of this.activeLabs.entries()) {
                 try {
                     // Check if containers are still running
