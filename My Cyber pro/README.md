@@ -1,142 +1,196 @@
-# CyberPro - OT/ICS Security Lab Platform
+# CyberPro - Open-Source Cyber Security Labs
 
-A hands-on industrial cybersecurity learning platform with Docker-based labs. **Start with OilSprings - a complete industrial environment with 7 services that auto-open in your browser!**
+## 🎯 Overview
 
-## 🚀 Quick Start (3 Steps)
+CyberPro is a web-based platform for hands-on cyber security training with **4 fully functional, open-source labs**:
 
-### 1. Start Docker Desktop
-Make sure Docker Desktop is running.
+1. **OpenPLC Controller** - Learn PLC programming
+2. **SCADA Dashboard** - Build industrial dashboards  
+3. **Network Security** - Monitor and analyze traffic
+4. **Penetration Testing** - Practice ethical hacking
 
-### 2. Start the Portal
+## ✨ Features
+
+- 🚀 **One-Click Launch** - Start labs instantly from web portal
+- 🪟 **Auto-Open Tabs** - All lab services open automatically
+- 📚 **Guided Learning** - Each lab includes exercises and tutorials
+- 🐳 **Docker-Based** - Isolated, reproducible environments
+- 🆓 **100% Open-Source** - No licensing required
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Docker Desktop (running)
+- Node.js 16+ and npm
+- 4GB+ RAM
+- Windows/Linux/Mac
+
+### Installation
+
 ```powershell
+# Clone or navigate to project
 cd "C:\Users\navin\OneDrive\문서\MY cyber\CyberPro\My Cyber pro"
+
+# Install dependencies
+npm install
+
+# Start portal
 npm start
 ```
 
-### 3. Launch OilSprings Lab
+### Access Portal
+
 1. Open http://localhost:3000
 2. Login: `admin` / `admin123`
-3. Click **Labs** → **OilSprings Industrial Lab** → **Launch Lab**
-4. **All 7 services automatically open in new tabs!** 🎉
+3. Go to **Labs**
+4. Click any lab → **Launch Lab**
+5. Services auto-open in new tabs! 🎉
 
-## 🧪 OilSprings Lab - What You Get
+## 📦 Available Labs
 
-When you launch OilSprings, these 7 services open automatically:
+### 1. OpenPLC Controller (Beginner)
+**What:** Real PLC programming environment  
+**Services:** OpenPLC Web Interface (8080)  
+**Learn:** Ladder logic, Modbus, I/O control  
+**Time:** 60 minutes
 
-| Service | Port | What It Does |
-|---------|------|--------------|
-| **PLC Controller** | 8080 | Program and control industrial processes |
-| **SCADA Dashboard** | 8081 | Monitor and visualize operations |
-| **Engineering Workstation** | 8083 | Full desktop for PLC programming |
-| **IDS Monitor** | 8084 | Network intrusion detection |
-| **Log Collector** | 8085 | Centralized logging and analysis |
-| **Pentest Terminal** | 8086 | Security testing tools |
-| **Router Interface** | 8087 | Network configuration |
+### 2. SCADA Dashboard (Beginner)
+**What:** Node-RED based SCADA system  
+**Services:** Flow Editor (1880), Dashboard (1881)  
+**Learn:** Data flows, visualization, monitoring  
+**Time:** 60 minutes
 
-**📖 Complete Guide:** See [OILSPRINGS_GUIDE.md](OILSPRINGS_GUIDE.md) for detailed instructions, learning scenarios, and troubleshooting.
+### 3. Network Security (Intermediate)
+**What:** Packet capture and analysis  
+**Services:** Network Monitor (8082)  
+**Learn:** tcpdump, traffic analysis, diagnostics  
+**Time:** 50 minutes
 
-## ✨ Key Features
+### 4. Penetration Testing (Advanced)
+**What:** Kali Linux tools in browser  
+**Services:** Web Terminal (7681)  
+**Learn:** nmap, metasploit, ethical hacking  
+**Time:** 90 minutes
 
-- ✅ **Auto-Open Services** - All lab services open in new tabs automatically
-- ✅ **Real OT/ICS Environment** - Actual industrial protocols and systems
-- ✅ **Network Segmentation** - 4 isolated networks simulating real architecture
-- ✅ **Hands-On Learning** - Practice with real tools and protocols
-- ✅ **Safe Environment** - Isolated Docker containers
+## 🎓 Learning Path
 
-## 🛑 Stopping the Lab
+**Recommended Order:**
+1. Start with **OpenPLC** - Understand industrial systems
+2. Then **SCADA Dashboard** - Build monitoring interfaces
+3. Next **Network Security** - Analyze traffic
+4. Finally **Penetration Testing** - Test security
 
-**From Portal:**
-- Go to lab page → Click "Stop Lab"
+## 🔧 Manual Lab Launch
 
-**From Command Line:**
+You can also launch labs directly:
+
 ```powershell
-cd labs/oilsprings
-docker-compose down
+# OpenPLC
+cd labs/openplc
+docker-compose up -d
+
+# SCADA Dashboard
+cd labs/scada-dashboard
+docker-compose up -d
+
+# Network Security
+cd labs/network-security
+docker-compose up -d
+
+# Penetration Testing
+cd labs/pentest
+docker-compose up -d
 ```
 
-## 🔧 Troubleshooting
+## 📖 Documentation
 
-### Services don't auto-open
-- Allow popups for `localhost:3000` in your browser
-- Or manually click service links in the lab page
+Each lab has detailed documentation:
+- `labs/openplc/README.md`
+- `labs/scada-dashboard/README.md`
+- `labs/network-security/README.md`
+- `labs/pentest/README.md`
 
-### Lab won't start
+## 🐛 Troubleshooting
+
+### Portal won't start
+```powershell
+# Check if port 3000 is free
+netstat -ano | findstr :3000
+
+# Restart portal
+npm start
+```
+
+### Lab won't launch
 ```powershell
 # Check Docker is running
 docker ps
 
-# Restart the lab
-cd labs/oilsprings
-docker-compose down
+# View lab logs
+docker logs <container_name>
+
+# Rebuild lab
+cd labs/<lab_name>
+docker-compose build --no-cache
 docker-compose up -d
 ```
 
-### Port conflicts
+### Services not accessible
+- Wait 30-60 seconds for containers to fully start
+- Check firewall isn't blocking ports
+- Verify no port conflicts: `netstat -ano | findstr :<port>`
+
+## 🎯 Project Structure
+
+```
+CyberPro/
+├── server.js           # Portal backend
+├── db.js              # Database with lab definitions
+├── labManager.js      # Docker lab management
+├── public/            # Frontend files
+│   ├── labs.html
+│   ├── lab-detail.html
+│   └── js/
+└── labs/              # Lab configurations
+    ├── openplc/
+    ├── scada-dashboard/
+    ├── network-security/
+    └── pentest/
+```
+
+## 💡 Tips
+
+- **Build Once** - First lab launch builds Docker images (~5-15 min)
+- **Subsequent Starts** - Instant after initial build
+- **Stop Labs** - Use portal or `docker-compose down`
+- **Save Work** - Some labs persist data in volumes
+- **Browser Popups** - Allow popups for localhost:3000
+
+## 🤝 Contributing
+
+Want to add more labs? Each lab needs:
+1. `Dockerfile` - Container definition
+2. `docker-compose.yml` - Service configuration
+3. `README.md` - Learning guide
+4. Entry in `db.js` - Portal integration
+
+## 📝 License
+
+Open-source labs using:
+- OpenPLC (GPL-3.0)
+- Node-RED (Apache-2.0)
+- Kali Linux (GPL)
+- Various open-source tools
+
+## 🎉 Get Started!
+
 ```powershell
-# Find what's using a port
-netstat -ano | findstr :8080
-
-# Stop all OilSprings containers
-docker stop $(docker ps -q --filter "name=oilsprings")
+npm start
 ```
 
-## 📚 Documentation
-
-- **[OILSPRINGS_GUIDE.md](OILSPRINGS_GUIDE.md)** - Complete lab guide with learning scenarios
-- **[RUNNING_LABS.md](RUNNING_LABS.md)** - Detailed platform documentation
-- **[QUICKSTART.md](QUICKSTART.md)** - Quick reference guide
-
-## 🎓 Learning Path
-
-1. **Start OilSprings** - Get familiar with all 7 services
-2. **Basic Monitoring** - Learn SCADA and PLC basics (30 min)
-3. **Engineering Tasks** - Modify PLC programs (60 min)
-4. **Security Assessment** - Practice OT security testing (90 min)
-
-See [OILSPRINGS_GUIDE.md](OILSPRINGS_GUIDE.md) for detailed scenarios.
-
-## 📊 System Requirements
-
-- **Docker Desktop** (required)
-- **CPU**: 2+ cores (4+ recommended)
-- **RAM**: 4GB minimum (8GB recommended)
-- **Disk**: 10GB free space
-
-## 🔒 Security Notice
-
-- For educational use only
-- Never use on production systems
-- Labs run in isolated Docker networks
-- Default credentials should be changed
-
-## 📁 Project Structure
-
-```
-My Cyber pro/
-├── server.js              # Portal server
-├── labManager.js          # Docker lab control
-├── db.js                  # Database
-├── labs/
-│   └── oilsprings/        # OilSprings lab
-│       ├── docker-compose.yml
-│       ├── plc/
-│       ├── scada/
-│       ├── ews/
-│       ├── ids/
-│       ├── collector/
-│       ├── pentest/
-│       └── router/
-└── public/                # Web interface
-```
-
-## 🆘 Need Help?
-
-1. Check [OILSPRINGS_GUIDE.md](OILSPRINGS_GUIDE.md) troubleshooting section
-2. View container logs: `docker logs oilsprings_<service>`
-3. Restart Docker Desktop
-4. Check that ports 8080-8087 are not in use
+Then visit http://localhost:3000 and start learning! 🚀
 
 ---
 
-**Ready to learn OT/ICS security? Run `npm start` and launch OilSprings!** 🚀
-
+**Happy Hacking!** 🔐

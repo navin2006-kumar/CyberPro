@@ -178,76 +178,89 @@ class Database {
             }
         });
 
+
         // Seed default labs
         const defaultLabs = [
             {
-                name: 'OilSprings Industrial Lab',
-                slug: 'oilsprings',
-                category: 'industrial',
-                type: 'full-range',
-                description: 'Complete OT/ICS security lab with PLC, SCADA, IDS, and penetration testing capabilities',
-                difficulty: 'intermediate',
-                docker_compose_path: './labs/oilsprings/docker-compose.yml',
-                ports: JSON.stringify([8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087]),
+                name: 'OpenPLC Controller',
+                slug: 'openplc',
+                category: 'plc',
+                type: 'plc',
+                description: 'Learn PLC programming with OpenPLC - program real PLCs using ladder logic and Modbus protocol',
+                difficulty: 'beginner',
+                docker_compose_path: './labs/openplc/docker-compose.yml',
+                ports: JSON.stringify([8080]),
                 services: JSON.stringify([
-                    { name: 'PLC Controller', port: 8080, url: 'http://localhost:8080', description: 'OpenPLC Runtime' },
-                    { name: 'SCADA Dashboard', port: 8081, url: 'http://localhost:8081', description: 'Node-RED SCADA Interface' },
-                    { name: 'Engineering Workstation', port: 8083, url: 'http://localhost:8083/vnc.html', description: 'VNC Web Interface' },
-                    { name: 'IDS Monitor', port: 8084, url: 'http://localhost:8084', description: 'Network Intrusion Detection' },
-                    { name: 'Log Collector', port: 8085, url: 'http://localhost:8085', description: 'Centralized Logging' },
-                    { name: 'Pentest Terminal', port: 8086, url: 'http://localhost:8086', description: 'Web-based Terminal' },
-                    { name: 'Router Interface', port: 8087, url: 'http://localhost:8087', description: 'Network Router Config' }
+                    { name: 'OpenPLC Web Interface', port: 8080, url: 'http://localhost:8080', description: 'PLC Programming Environment' }
                 ]),
                 learning_objectives: JSON.stringify([
-                    'Understand complete OT/ICS architecture',
-                    'Learn industrial protocol security',
-                    'Practice network segmentation',
-                    'Perform security monitoring',
-                    'Execute penetration testing'
+                    'Program PLCs using ladder logic',
+                    'Understand industrial control systems',
+                    'Work with Modbus protocol',
+                    'Monitor I/O operations'
                 ]),
-                estimated_time: 120
-            },
-            {
-                name: 'SCADA Fundamentals',
-                slug: 'scada-basics',
-                category: 'scada',
-                type: 'scada',
-                description: 'Learn SCADA systems with Modbus/TCP protocol simulation',
-                difficulty: 'beginner',
-                docker_compose_path: './labs/scada/docker-compose.yml',
-                ports: JSON.stringify([1881]),
-                services: JSON.stringify([{ name: 'SCADA Dashboard', port: 1881, url: 'http://localhost:1881' }]),
-                learning_objectives: JSON.stringify(['Understand SCADA architecture', 'Learn Modbus protocol basics', 'Monitor industrial processes']),
                 estimated_time: 60
             },
             {
-                name: 'Network Monitoring',
+                name: 'SCADA Dashboard',
+                slug: 'scada-dashboard',
+                category: 'scada',
+                type: 'scada',
+                description: 'Build SCADA dashboards with Node-RED - create data flows and visualize industrial processes',
+                difficulty: 'beginner',
+                docker_compose_path: './labs/scada-dashboard/docker-compose.yml',
+                ports: JSON.stringify([1880, 1881]),
+                services: JSON.stringify([
+                    { name: 'Flow Editor', port: 1880, url: 'http://localhost:1880', description: 'Node-RED Flow Editor' },
+                    { name: 'Dashboard', port: 1881, url: 'http://localhost:1881/ui', description: 'SCADA Dashboard UI' }
+                ]),
+                learning_objectives: JSON.stringify([
+                    'Build SCADA dashboards',
+                    'Create data flows',
+                    'Monitor industrial processes',
+                    'Visualize real-time data'
+                ]),
+                estimated_time: 60
+            },
+            {
+                name: 'Network Security',
                 slug: 'network-security',
                 category: 'network',
                 type: 'network',
-                description: 'Monitor and analyze OT network traffic',
+                description: 'Monitor and analyze network traffic - capture packets, analyze protocols, detect anomalies',
                 difficulty: 'intermediate',
-                docker_compose_path: './labs/network/docker-compose.yml',
-                ports: JSON.stringify([1443]),
-                services: JSON.stringify([{ name: 'Network Monitor', port: 1443, url: 'https://localhost:1443' }]),
-                learning_objectives: JSON.stringify(['Analyze network traffic', 'Configure firewall rules', 'Detect network intrusions']),
-                estimated_time: 75
+                docker_compose_path: './labs/network-security/docker-compose.yml',
+                ports: JSON.stringify([8082]),
+                services: JSON.stringify([
+                    { name: 'Network Monitor', port: 8082, url: 'http://localhost:8082', description: 'Packet Capture & Analysis' }
+                ]),
+                learning_objectives: JSON.stringify([
+                    'Capture network packets',
+                    'Analyze traffic patterns',
+                    'Use network diagnostic tools',
+                    'Detect anomalies'
+                ]),
+                estimated_time: 50
             },
             {
-                name: 'ICS Penetration Testing',
-                slug: 'pentest-lab',
+                name: 'Penetration Testing',
+                slug: 'pentest',
                 category: 'pentest',
                 type: 'pentest',
-                description: 'Practice offensive security techniques in isolated environment',
+                description: 'Practice ethical hacking with Kali Linux tools - nmap, metasploit, sqlmap, and more',
                 difficulty: 'advanced',
                 docker_compose_path: './labs/pentest/docker-compose.yml',
-                ports: JSON.stringify([2222, 3443]),
+                ports: JSON.stringify([7681]),
                 services: JSON.stringify([
-                    { name: 'Web Terminal', port: 3443, url: 'https://localhost:3443' },
-                    { name: 'SSH Access', port: 2222, url: 'ssh://localhost:2222' }
+                    { name: 'Web Terminal', port: 7681, url: 'http://localhost:7681', description: 'Kali Linux Terminal' }
                 ]),
-                learning_objectives: JSON.stringify(['Perform reconnaissance', 'Identify vulnerabilities', 'Practice exploitation']),
-                estimated_time: 120
+                learning_objectives: JSON.stringify([
+                    'Use penetration testing tools',
+                    'Practice ethical hacking',
+                    'Vulnerability assessment',
+                    'Security testing techniques'
+                ]),
+                estimated_time: 90
             }
         ];
 

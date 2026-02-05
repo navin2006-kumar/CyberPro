@@ -1,0 +1,17 @@
+name: scada-dashboard
+
+services:
+  nodered:
+    build: .
+    container_name: scada_nodered
+    ports:
+      - "1880:1880" # Flow editor
+      - "1881:1880" # Dashboard (same port, different mapping for clarity)
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+    volumes:
+      - nodered-data:/data
+
+volumes:
+  nodered-data:

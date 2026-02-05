@@ -1,0 +1,14 @@
+
+name: network-security
+
+services:
+  network-monitor:
+    build: .
+    container_name: network_monitor
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
