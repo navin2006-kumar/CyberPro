@@ -250,9 +250,11 @@ class Database {
                 description: 'Practice ethical hacking with Kali Linux tools - nmap, metasploit, sqlmap, and more',
                 difficulty: 'advanced',
                 docker_compose_path: './labs/pentest/docker-compose.yml',
-                ports: JSON.stringify([7681]),
+                ports: JSON.stringify([7681, 8081, 3001]),
                 services: JSON.stringify([
-                    { name: 'Web Terminal', port: 7681, url: 'http://localhost:7681', description: 'Kali Linux Terminal' }
+                    { name: 'Attacker Terminal', port: 7681, url: 'http://localhost:7681', description: 'Ubuntu Terminal with Pentesting Tools' },
+                    { name: 'DVWA Target', port: 8081, url: 'http://localhost:8081', description: 'Damn Vulnerable Web Application' },
+                    { name: 'Juice Shop Target', port: 3001, url: 'http://localhost:3001', description: 'OWASP Juice Shop' }
                 ]),
                 learning_objectives: JSON.stringify([
                     'Use penetration testing tools',
