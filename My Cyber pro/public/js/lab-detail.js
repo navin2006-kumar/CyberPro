@@ -154,15 +154,35 @@ async function startLab() {
             if (data.autoOpen && data.services && data.services.length > 0) {
                 console.log('Auto-opening services:', data.services);
 
+                // Show notification
+                showNotification(`Opening ${data.services.length} service tab(s)...`, 'info');
+
                 // Wait a bit for containers to fully start
                 setTimeout(() => {
+                    let blockedCount = 0;
+
                     data.services.forEach((service, index) => {
                         // Stagger the opening slightly to avoid browser blocking
                         setTimeout(() => {
                             console.log(`Opening service: ${service.name} at ${service.url}`);
-                            window.open(service.url, `_blank_${service.name.replace(/\s+/g, '_')}`);
-                        }, index * 200); // 200ms delay between each tab
+                            const newWindow = window.open(service.url, `_blank_${service.name.replace(/\s+/g, '_')}`);
+
+                            // Check if pop-up was blocked
+                            if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                                blockedCount++;
+                                console.warn(`Pop-up blocked for ${service.name}`);
+                            }
+                        }, index * 300); // 300ms delay between each tab
                     });
+
+                    // Check if any were blocked and show message
+                    setTimeout(() => {
+                        if (blockedCount > 0) {
+                            showNotification('Some tabs were blocked by your browser. Please allow pop-ups and use the "Open" buttons below.', 'warning');
+                        } else {
+                            showNotification(`Successfully opened ${data.services.length} service tab(s)!`, 'success');
+                        }
+                    }, (data.services.length * 300) + 500);
                 }, 3000); // Wait 3 seconds for containers to initialize
             }
 
@@ -178,6 +198,34 @@ async function startLab() {
         startBtn.disabled = false;
     }
 }
+
+// Show notification helper
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existing = document.querySelector('.lab-notification');
+    if (existing) {
+        existing.remove();
+    }
+
+    // Create notification
+    const notification = document.createElement('div');
+    notification.className = `lab-notification ${type}`;
+    notification.innerHTML = `
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()">×</button>
+    `;
+
+    // Add to page
+    document.body.appendChild(notification);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
 
 // Stop lab
 async function stopLab() {

@@ -287,3 +287,82 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Lab Notifications */
+.lab-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    min-width: 320px;
+    max-width: 500px;
+    padding: 1rem 1.5rem;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    z-index: 10000;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.lab-notification.info {
+    border-left: 4px solid #00C9FF;
+}
+
+.lab-notification.success {
+    border-left: 4px solid #00EA64;
+}
+
+.lab-notification.warning {
+    border-left: 4px solid #FFA500;
+}
+
+.lab-notification span {
+    flex: 1;
+    color: #fff;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.lab-notification button {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.lab-notification button:hover {
+    color: #fff;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .lab-notification {
+        top: 70px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+    }
+}
