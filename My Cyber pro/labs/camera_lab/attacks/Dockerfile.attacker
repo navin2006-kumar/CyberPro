@@ -1,0 +1,43 @@
+FROM kalilinux/kali-rolling
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install tools
+RUN apt-get update && apt-get install -y \
+    curl wget nmap tcpdump net-tools iproute2 iputils-ping \
+    dnsutils netcat-traditional traceroute hydra \
+    python3 python3-pip ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages
+RUN pip3 install scapy flask requests --break-system-packages
+
+# Install ttyd (web terminal)
+RUN wget -q https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 \
+    -O /usr/local/bin/ttyd && chmod +x /usr/local/bin/ttyd
+
+# Copy dashboard
+COPY dashboard/ /dashboard/
+
+# Copy entrypoint
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
+WORKDIR /root
+
+# Welcome banner
+RUN echo '#!/bin/bash\n\
+    clear\n\
+    echo "╔═══════════════════════════════════════════════╗"\n\
+    echo "║  📷 CAMERA LAB - ATTACKER TERMINAL           ║"\n\
+    echo "╚═══════════════════════════════════════════════╝"\n\
+    echo ""\n\
+    echo "Targets: CAMERA 10.50.0.10 | FW1 10.51.0.2 | FW2 10.51.0.3"\n\
+    echo "Tools:   nmap, curl, hydra, tcpdump, scapy, netcat"\n\
+    echo ""\n\
+    echo "⚠️  Follow the walkthrough panel for attack steps"\n\
+    echo ""' > /root/.bashrc
+
+EXPOSE 7681 8080
+
+CMD ["/start.sh"]

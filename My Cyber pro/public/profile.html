@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - CyberPro</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <style>
+        .profile-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .profile-header {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            margin: 0 auto 1rem;
+            box-shadow: 0 10px 40px rgba(0, 234, 100, 0.3);
+        }
+
+        .profile-name {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .profile-role {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            text-transform: capitalize;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 234, 100, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 234, 100, 0.1);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .skill-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 234, 100, 0.2);
+            color: var(--primary-green);
+            border-radius: 20px;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .activity-section,
+        .settings-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .activity-item:hover {
+            background: rgba(0, 0, 0, 0.3);
+            transform: translateX(5px);
+        }
+
+        .activity-icon {
+            font-size: 1.5rem;
+        }
+
+        .activity-info {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-time {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .settings-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .setting-label {
+            font-weight: 500;
+        }
+
+        .setting-description {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 30px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.toggle-slider {
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+        }
+
+        input:checked+.toggle-slider:before {
+            transform: translateX(30px);
+        }
+
+        .btn-primary {
+            padding: 0.8rem 2rem;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            border: none;
+            border-radius: 10px;
+            color: #000;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 234, 100, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>🔬 CyberPro</h1>
+            </div>
+            <div class="nav-links">
+                <a href="/dashboard.html">Dashboard</a>
+                <a href="/labs.html">Labs</a>
+                <a href="/profile.html" class="active">Profile</a>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="profile-container">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="profile-avatar" id="profileAvatar">👤</div>
+            <h2 class="profile-name" id="profileName">Loading...</h2>
+            <p class="profile-role" id="profileRole">User</p>
+            <span class="skill-badge" id="skillLevel">Beginner</span>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Labs Completed</div>
+                <div class="stat-value" id="labsCompleted">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Time Spent (hours)</div>
+                <div class="stat-value" id="timeSpent">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Current Streak (days)</div>
+                <div class="stat-value" id="currentStreak">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Overall Progress</div>
+                <div class="stat-value" id="overallProgress">0%</div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="activity-section">
+            <h3 class="section-title">📊 Recent Activity</h3>
+            <div id="activityList">
+                <p style="color: var(--text-secondary); text-align: center;">No recent activity</p>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="settings-section">
+            <h3 class="section-title">⚙️ Settings</h3>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Auto-open Lab Services</div>
+                        <div class="setting-description">Automatically open labs in browser when started</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoOpenLabs" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Email Notifications</div>
+                        <div class="setting-description">Receive notifications about lab updates</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="emailNotifications">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Dark Mode</div>
+                        <div class="setting-description">Use dark theme (always on)</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="darkMode" checked disabled>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="text-align: center;">
+            <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+        </div>
+    </div>
+
+    <script>
+        let userSession = null;
+
+        // Check authentication
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/session');
+                const data = await response.json();
+
+                if (!data.success) {
+                    window.location.href = '/';
+                    return false;
+                }
+
+                userSession = data.user;
+                return true;
+            } catch (error) {
+                window.location.href = '/';
+                return false;
+            }
+        }
+
+        // Load profile data
+        async function loadProfile() {
+            if (!userSession) return;
+
+            // Set basic profile info
+            document.getElementById('profileName').textContent = userSession.username;
+            document.getElementById('profileRole').textContent = userSession.role;
+            document.getElementById('profileAvatar').textContent = userSession.username.charAt(0).toUpperCase();
+
+            // Load stats
+            try {
+                const response = await fetch('/api/dashboard/stats');
+                const data = await response.json();
+
+                if (data.success && data.stats) {
+                    const stats = data.stats;
+                    document.getElementById('labsCompleted').textContent = stats.labsCompleted || 0;
+                    document.getElementById('timeSpent').textContent = Math.round((stats.timeSpent || 0) / 60);
+                    document.getElementById('currentStreak').textContent = stats.currentStreak || 0;
+                    document.getElementById('skillLevel').textContent = stats.skillLevel || 'Beginner';
+                    document.getElementById('overallProgress').textContent = (stats.overallProgress || 0) + '%';
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+
+            // Load activity
+            try {
+                const response = await fetch('/api/dashboard/activity');
+                const data = await response.json();
+
+                if (data.success && data.activity && data.activity.length > 0) {
+                    const activityList = document.getElementById('activityList');
+                    activityList.innerHTML = data.activity.map(item => {
+                        const icon = getActivityIcon(item.type);
+                        const time = formatTime(item.timestamp);
+                        return `
+                            <div class="activity-item">
+                                <div class="activity-icon">${icon}</div>
+                                <div class="activity-info">
+                                    <div class="activity-title">${item.title}</div>
+                                    <div class="activity-time">${time}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Error loading activity:', error);
+            }
+        }
+
+        // Get activity icon
+        function getActivityIcon(type) {
+            const icons = {
+                'lab_started': '▶️',
+                'lab_stopped': '⏹️',
+                'lab_completed': '✅',
+                'login': '🔐',
+                'logout': '🚪'
+            };
+            return icons[type] || '📝';
+        }
+
+        // Format timestamp
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000); // seconds
+
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+            return `${Math.floor(diff / 86400)} days ago`;
+        }
+
+        // Save settings
+        function saveSettings() {
+            const settings = {
+                autoOpenLabs: document.getElementById('autoOpenLabs').checked,
+                emailNotifications: document.getElementById('emailNotifications').checked
+            };
+
+            localStorage.setItem('userSettings', JSON.stringify(settings));
+
+            // Show toast notification
+            const toast = document.createElement('div');
+            toast.className = 'notification success';
+            toast.innerHTML = '<strong>✓ Settings saved successfully</strong>';
+            toast.style.cssText = 'position:fixed;top:20px;right:20px;padding:1rem 2rem;background:var(--card-bg);border:1px solid var(--primary-green);border-radius:10px;z-index:9999;animation:slideIn 0.3s ease;';
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Load settings
+        function loadSettings() {
+            const settings = JSON.parse(localStorage.getItem('userSettings') || '{}');
+            if (settings.autoOpenLabs !== undefined) {
+                document.getElementById('autoOpenLabs').checked = settings.autoOpenLabs;
+            }
+            if (settings.emailNotifications !== undefined) {
+                document.getElementById('emailNotifications').checked = settings.emailNotifications;
+            }
+        }
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/';
+        });
+
+        // Initialize
+        checkAuth().then(authenticated => {
+            if (authenticated) {
+                loadProfile();
+                loadSettings();
+            }
+        });
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(400px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(400px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+
+</html>

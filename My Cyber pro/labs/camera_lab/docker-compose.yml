@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # TARGETS (behind firewalls)
+  camera-target:
+    build:
+      context: ./camera
+      dockerfile: Dockerfile
+    container_name: camera-target
+    privileged: true
+    environment:
+      CAM_NAME: "CCTV-CAM-01"
+      CAM_LOC: "Perimeter Gate A"
+      CAM_VIDEO: "/data/sample.mp4"
+      CAM_LOG: "/logs/camera.log"
+      CAM_AUTH: "1"
+      CAM_USER: "admin"
+      CAM_PASS: "admin"
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    networks:
+      pentest-net:
+        ipv4_address: 10.50.0.10
+    restart: unless-stopped
+
+  web-target:
+    image: nginx:alpine
+    container_name: web-target
+    networks:
+      pentest-net:
+        ipv4_address: 10.50.0.11
+
+  # VULNERABLE FIREWALLS
+  vuln-fw1:
+    build:
+      context: ./firewalls
+      dockerfile: Dockerfile.fw1
+    container_name: vuln-fw1
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    networks:
+      pentest-net:
+        ipv4_address: 10.50.0.2
+      attacker-net:
+        ipv4_address: 10.51.0.2
+    depends_on:
+      - camera-target
+      - web-target
+
+  vuln-fw2:
+    build:
+      context: ./firewalls
+      dockerfile: Dockerfile.fw2
+    container_name: vuln-fw2
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    networks:
+      pentest-net:
+        ipv4_address: 10.50.0.3
+      attacker-net:
+        ipv4_address: 10.51.0.3
+    depends_on:
+      - camera-target
+      - web-target
+
+  # ATTACKER (web terminal on port 7681)
+  attacker:
+    build:
+      context: ./attacks
+      dockerfile: Dockerfile.attacker
+    container_name: attacker
+    hostname: attacker
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    ports:
+      - "7681:7681"
+      - "8080:8080"
+    networks:
+      - attacker-net
+    depends_on:
+      - vuln-fw1
+      - vuln-fw2
+    restart: unless-stopped
+
+networks:
+  pentest-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.50.0.0/24
+  attacker-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.51.0.0/24

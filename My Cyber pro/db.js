@@ -263,6 +263,27 @@ class Database {
                     'Security testing techniques'
                 ]),
                 estimated_time: 90
+            },
+            {
+                name: 'Camera Lab',
+                slug: 'camera-lab',
+                category: 'pentest',
+                type: 'pentest',
+                description: 'Penetration testing lab for IP camera security - bypass firewalls, exploit network vulnerabilities, and access live camera feeds',
+                difficulty: 'intermediate',
+                docker_compose_path: './labs/camera_lab/docker-compose.yml',
+                ports: JSON.stringify([7681, 8080]),
+                services: JSON.stringify([
+                    { name: 'Attacker Terminal', port: 7681, url: 'http://localhost:7681', description: 'Web Terminal with Attack Tools' },
+                    { name: 'Attack Dashboard', port: 8080, url: 'http://localhost:8080', description: 'Camera Lab Dashboard' }
+                ]),
+                learning_objectives: JSON.stringify([
+                    'Bypass firewall rules',
+                    'Exploit packet-level vulnerabilities',
+                    'Network reconnaissance with nmap',
+                    'Access camera streams with default credentials'
+                ]),
+                estimated_time: 45
             }
         ];
 

