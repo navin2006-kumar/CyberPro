@@ -3,14 +3,14 @@ const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const WebSocket = require('ws');
 const http = require('http');
 const path = require('path');
+const axios = require('axios');
 
 const Database = require('./db');
 const LabManager = require('./labManager');
-const ChatbotService = require('./chatbot');
 
 // Initialize Express app
 const app = express();
@@ -19,9 +19,9 @@ const wss = new WebSocket.Server({ server });
 
 // Configuration
 const PORT = process.env.PORT || 3000;
+const PYTHON_CHATBOT_URL = process.env.PYTHON_CHATBOT_URL || 'http://localhost:5000';
 const db = new Database(process.env.DB_PATH);
 const labManager = new LabManager(db);
-const chatbot = new ChatbotService();
 
 // Middleware
 app.use(cors());
@@ -278,7 +278,7 @@ app.get('/api/system/status', requireAuth, async (req, res) => {
     }
 });
 
-// Chatbot routes
+// Chatbot routes (proxied to Python service)
 app.post('/api/chatbot/message', requireAuth, async (req, res) => {
     try {
         const { message, context } = req.body;
@@ -287,31 +287,55 @@ app.post('/api/chatbot/message', requireAuth, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Message is required' });
         }
 
-        const result = await chatbot.processMessage(req.session.userId, message, context || {});
-        res.json(result);
+        // Proxy request to Python chatbot service
+        const response = await axios.post(`${PYTHON_CHATBOT_URL}/api/chatbot/message`, {
+            userId: req.session.userId,
+            message: message,
+            context: context || {}
+        });
+
+        res.json(response.data);
     } catch (error) {
-        console.error('Chatbot error:', error);
+        console.error('Chatbot error:', error.message);
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                success: false,
+                message: 'Chatbot service is not available. Please start the Python chatbot service.'
+            });
+        }
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-app.get('/api/chatbot/history', requireAuth, (req, res) => {
+app.get('/api/chatbot/history', requireAuth, async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 10;
-        const history = chatbot.getConversationHistory(req.session.userId, limit);
-        res.json({ success: true, history });
+
+        // Proxy request to Python chatbot service
+        const response = await axios.get(`${PYTHON_CHATBOT_URL}/api/chatbot/history`, {
+            params: {
+                userId: req.session.userId,
+                limit: limit
+            }
+        });
+
+        res.json(response.data);
     } catch (error) {
-        console.error('Error getting chat history:', error);
+        console.error('Error getting chat history:', error.message);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-app.post('/api/chatbot/reset', requireAuth, (req, res) => {
+app.post('/api/chatbot/reset', requireAuth, async (req, res) => {
     try {
-        const result = chatbot.resetConversation(req.session.userId);
-        res.json(result);
+        // Proxy request to Python chatbot service
+        const response = await axios.post(`${PYTHON_CHATBOT_URL}/api/chatbot/reset`, {
+            userId: req.session.userId
+        });
+
+        res.json(response.data);
     } catch (error) {
-        console.error('Error resetting chat:', error);
+        console.error('Error resetting chat:', error.message);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });

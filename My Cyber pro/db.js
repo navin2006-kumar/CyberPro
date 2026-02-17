@@ -1,5 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const path = require('path');
 const fs = require('fs');
 
