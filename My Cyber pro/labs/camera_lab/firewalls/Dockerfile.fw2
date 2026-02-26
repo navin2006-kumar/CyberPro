@@ -1,5 +1,7 @@
 FROM kalilinux/kali-rolling
-RUN apt-get update && apt-get install -y python3 python3-pip tcpdump iproute2
+RUN apt-get update && apt-get install -y python3 python3-pip tcpdump iproute2 iptables
 RUN pip3 install scapy --break-system-packages
 COPY vuln_fw2.py /fw.py
-CMD ["python3", "/fw.py"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+CMD ["/entrypoint.sh"]
