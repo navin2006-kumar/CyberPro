@@ -11,7 +11,7 @@ services:
     environment:
       CAM_NAME: "CCTV-CAM-01"
       CAM_LOC: "Perimeter Gate A"
-      CAM_VIDEO: "/data/sample.mp4"
+      CAM_VIDEO: "/data/cyber demo.mp4"
       CAM_LOG: "/logs/camera.log"
       CAM_AUTH: "1"
       CAM_USER: "admin"
@@ -80,8 +80,8 @@ services:
       - NET_ADMIN
       - NET_RAW
     ports:
-      - "7681:7681"
-      - "8080:8080"
+      - "7683:7681"
+      - "9090:8080"
     networks:
       - attacker-net
     depends_on:

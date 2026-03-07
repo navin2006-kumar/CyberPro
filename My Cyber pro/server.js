@@ -340,100 +340,9 @@ app.post('/api/chatbot/reset', requireAuth, async (req, res) => {
     }
 });
 
-// ============ Lab Management Routes ============
+// ============ Lab Status Route ============
 
-// Get all labs
-app.get('/api/labs', requireAuth, async (req, res) => {
-    try {
-        const labs = await db.getAllLabs();
-        res.json({ success: true, labs });
-    } catch (error) {
-        console.error('Error getting labs:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// Get lab by ID
-app.get('/api/labs/:id', requireAuth, async (req, res) => {
-    try {
-        const lab = await db.getLabById(parseInt(req.params.id));
-        if (!lab) {
-            return res.status(404).json({ success: false, message: 'Lab not found' });
-        }
-        res.json({ success: true, lab });
-    } catch (error) {
-        console.error('Error getting lab:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// Start lab
-app.post('/api/labs/:id/start', requireAuth, async (req, res) => {
-    try {
-        const labId = parseInt(req.params.id);
-        const lab = await db.getLabById(labId);
-
-        if (!lab) {
-            return res.status(404).json({ success: false, message: 'Lab not found' });
-        }
-
-        // Check if lab is already running
-        const activeSession = await db.getActiveLabSession(req.session.userId, labId);
-        if (activeSession) {
-            return res.json({ success: true, message: 'Lab already running', sessionId: activeSession.id });
-        }
-
-        // Start lab using labManager
-        const result = await labManager.startLab(lab.slug);
-
-        if (result.success) {
-            // Create lab session
-            const sessionId = await db.createLabSession(req.session.userId, labId);
-
-            // Log activity
-            await db.logActivity(req.session.userId, labId, 'lab_started', `Started ${lab.name}`);
-
-            res.json({ success: true, sessionId, message: 'Lab started successfully' });
-        } else {
-            res.status(500).json({ success: false, message: result.message || 'Failed to start lab' });
-        }
-    } catch (error) {
-        console.error('Error starting lab:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// Stop lab
-app.post('/api/labs/:id/stop', requireAuth, async (req, res) => {
-    try {
-        const labId = parseInt(req.params.id);
-        const lab = await db.getLabById(labId);
-
-        if (!lab) {
-            return res.status(404).json({ success: false, message: 'Lab not found' });
-        }
-
-        // Get active session
-        const activeSession = await db.getActiveLabSession(req.session.userId, labId);
-
-        // Stop lab using labManager
-        const result = await labManager.stopLab(lab.slug);
-
-        if (activeSession) {
-            await db.stopLabSession(activeSession.id);
-        }
-
-        // Log activity
-        await db.logActivity(req.session.userId, labId, 'lab_stopped', `Stopped ${lab.name}`);
-
-        res.json({ success: true, message: 'Lab stopped successfully' });
-    } catch (error) {
-        console.error('Error stopping lab:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// Get lab status
+// Get lab status (checks actual Docker container state)
 app.get('/api/labs/:id/status', requireAuth, async (req, res) => {
     try {
         const labId = parseInt(req.params.id);
@@ -443,13 +352,44 @@ app.get('/api/labs/:id/status', requireAuth, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Lab not found' });
         }
 
-        const status = await labManager.getLabStatus(lab.slug);
+        // Check actual Docker container state (not just in-memory map)
+        // This correctly detects labs started via docker-compose directly
+        let isRunning = labManager.activeLabs.has(labId);
+
+        if (!isRunning) {
+            try {
+                const containers = await labManager.docker.listContainers();
+                const pathModule = require('path');
+                const composePath = pathModule.resolve(__dirname, lab.docker_compose_path);
+                const composeDir = pathModule.dirname(composePath).toLowerCase().replace(/\\/g, '/');
+                // Docker compose project name = lowercased directory basename (spaces→underscores removed)
+                const projectName = pathModule.basename(composeDir).replace(/[^a-z0-9]/g, '');
+
+                const labContainers = containers.filter(c => {
+                    const labelDir = (c.Labels['com.docker.compose.project.working_dir'] || '')
+                        .toLowerCase().replace(/\\/g, '/');
+                    const labelProject = (c.Labels['com.docker.compose.project'] || '').toLowerCase();
+                    return labelDir === composeDir ||
+                           labelDir.endsWith(pathModule.basename(composeDir)) ||
+                           labelProject === projectName;
+                });
+                isRunning = labContainers.length > 0;
+
+                // Sync status to DB if containers are actually running
+                if (isRunning && lab.status !== 'running') {
+                    await db.updateLabStatus(labId, 'running');
+                }
+            } catch (dockerErr) {
+                // Docker check failed — fall back to DB status
+                isRunning = lab.status === 'running';
+            }
+        }
 
         res.json({
             success: true,
-            status: status.running ? 'running' : 'stopped',
+            status: isRunning ? 'running' : 'stopped',
             resources: {
-                containers: status.containers || 0,
+                containers: isRunning ? 1 : 0,
                 cpu: '--',
                 memory: '--'
             }

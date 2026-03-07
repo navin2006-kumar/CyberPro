@@ -272,10 +272,9 @@ class Database {
                 description: 'Penetration testing lab for IP camera security - bypass firewalls, exploit network vulnerabilities, and access live camera feeds',
                 difficulty: 'intermediate',
                 docker_compose_path: './labs/camera_lab/docker-compose.yml',
-                ports: JSON.stringify([7681, 8080]),
+                ports: JSON.stringify([7683, 9090]),
                 services: JSON.stringify([
-                    { name: 'Attacker Terminal', port: 7681, url: 'http://localhost:7681', description: 'Web Terminal with Attack Tools' },
-                    { name: 'Attack Dashboard', port: 8080, url: 'http://localhost:8080', description: 'Camera Lab Dashboard' }
+                    { name: 'Camera Lab Dashboard', port: 9090, url: 'http://localhost:9090', description: 'Attack Dashboard with embedded terminal, network map & walkthrough' }
                 ]),
                 learning_objectives: JSON.stringify([
                     'Bypass firewall rules',

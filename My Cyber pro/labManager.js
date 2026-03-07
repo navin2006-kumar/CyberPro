@@ -149,9 +149,6 @@ class LabManager {
             }
 
             const activeLabInfo = this.activeLabs.get(labId);
-            if (!activeLabInfo) {
-                return { success: false, message: 'Lab is not running' };
-            }
 
             // Update status
             await this.db.updateLabStatus(labId, 'stopping');
@@ -171,7 +168,10 @@ class LabManager {
                         // Clean up
                         this.activeLabs.delete(labId);
                         await this.db.updateLabStatus(labId, 'stopped');
-                        await this.db.endSession(activeLabInfo.sessionId);
+
+                        if (activeLabInfo) {
+                            await this.db.endSession(activeLabInfo.sessionId);
+                        }
                         await this.db.logActivity(userId, labId, 'lab_stopped', `Stopped lab: ${lab.name}`);
 
                         resolve({
@@ -184,6 +184,13 @@ class LabManager {
                             message: 'Failed to stop lab'
                         });
                     }
+                });
+
+                process.on('error', (error) => {
+                    resolve({
+                        success: false,
+                        message: `Error executing docker-compose: ${error.message}`
+                    });
                 });
             });
 

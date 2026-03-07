@@ -73,6 +73,7 @@ function displayLabInfo() {
 function displayServices() {
     const servicesList = document.getElementById('servicesList');
     const services = labData.services || [];
+    const isRunning = labData.status === 'running';
 
     if (services.length > 0) {
         servicesList.innerHTML = services.map(service => `
@@ -81,15 +82,26 @@ function displayServices() {
                     <div class="service-name">${service.name}</div>
                     <div class="service-port">Port: ${service.port}</div>
                 </div>
-                <a href="${service.url}" target="_blank" class="service-link ${labData.status !== 'running' ? 'disabled' : ''}">
-                    Open →
-                </a>
+                <a href="#" class="service-link" data-url="${service.url}" data-running="${isRunning}">Open &rarr;</a>
             </div>
         `).join('');
+
+        // Attach click handlers via event delegation
+        servicesList.querySelectorAll('.service-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (link.dataset.running === 'true') {
+                    window.open(link.dataset.url, '_blank');
+                } else {
+                    alert('Lab is not running. Click "Start Lab" and wait a few seconds for the containers to start.');
+                }
+            });
+        });
     } else {
         servicesList.innerHTML = '<p style="color: #888;">No services configured</p>';
     }
 }
+
 
 // Update lab status
 async function updateLabStatus() {

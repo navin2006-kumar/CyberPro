@@ -1,4 +1,4 @@
-const TERM_PORT = 7681;
+const TERM_PORT = 7683;
 let currentMode = 'walkthrough'; // default mode
 
 document.addEventListener('DOMContentLoaded', () => {
