@@ -1,196 +1,171 @@
-# CyberPro - Open-Source Cyber Security Labs
+# CyberPro: Scenario-Driven Cyber Range for Safe, Measurable Defensive Skills Practice
 
-## 🎯 Overview
+[![Project Status](https://img.shields.io/badge/Status-Research--Grade%20Cyber%20Range-blue.svg)](https://github.com/navin2006-kumar/CyberPro)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Tests: 7/7 Passing](https://img.shields.io/badge/Automated%20Tests-7%2F7%20Passed-brightgreen.svg)](docs/testing.md)
+[![Node.js: >=18](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-blue.svg)](https://nodejs.org/)
+[![Docker: Compose v2](https://img.shields.io/badge/Docker-Compose%20v2-2496ED.svg)](https://www.docker.com/)
 
-CyberPro is a web-based platform for hands-on cyber security training with **4 fully functional, open-source labs**:
+**Project ID**: P-2024-28-CS-118  
+**Theme**: Scenario-Driven Cyber Range for Operational Technology (OT) and Critical Infrastructure Defense  
+**Repository**: [https://github.com/navin2006-kumar/CyberPro.git](https://github.com/navin2006-kumar/CyberPro.git)
 
-1. **OpenPLC Controller** - Learn PLC programming
-2. **SCADA Dashboard** - Build industrial dashboards  
-3. **Network Security** - Monitor and analyze traffic
-4. **Penetration Testing** - Practice ethical hacking
+---
 
-## ✨ Features
+## 🔬 Overview & Scientific Motivation
 
-- 🚀 **One-Click Launch** - Start labs instantly from web portal
-- 🪟 **Auto-Open Tabs** - All lab services open automatically
-- 📚 **Guided Learning** - Each lab includes exercises and tutorials
-- 🐳 **Docker-Based** - Isolated, reproducible environments
-- 🆓 **100% Open-Source** - No licensing required
+**CyberPro** is an isolated, container-based cyber range architected to provide safe, reproducible, and verifiable cybersecurity training and defensive skill evaluation for industrial control systems (ICS) and operational technology (OT).
 
-## 🚀 Quick Start
+Traditional Capture-the-Flag (CTF) platforms reward binary flag discovery, often encouraging heuristic guessing without measuring defensive competencies. CyberPro introduces an **evidence-based assessment model**:
+- **Continuous Telemetry Capture**: Collects real-time network and host events during exercises without altering industrial process state.
+- **Deterministic Objective Evaluation**: Analyzes telemetry against formal objective rules, binding earned scores to immutable event records.
+- **Experiential Reflection**: Incorporates Kolb's learning cycle via structured 6-dimensional reflective debriefing prior to After-Action Report (AAR) generation.
+- **Clean-State Reproducibility**: Automated reset protocol verifies complete container reconstruction and health checks before certifying the environment for subsequent learners.
+
+---
+
+## 🏛️ System Architecture
+
+CyberPro operates on a modular, decoupled architecture bridging a hardened Node.js backend with an isolated multi-subnet industrial target lab:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            CyberPro Platform                                │
+├──────────────────────────────────┬──────────────────────────────────────────┤
+│        Frontend & Portal         │              Backend Core                │
+│  - Web Portal (HTML5 / Vanilla)  │  - Express.js API Gateway (port 3000)    │
+│  - WebSocket Telemetry Stream    │  - SQLite Engine (WAL mode, v2 schema)   │
+│  - After-Action Report (AAR) UI  │  - Session & RBAC Auth Middleware        │
+├──────────────────────────────────┴──────────────────────────────────────────┤
+│                            Core Engines Layer                               │
+│  ┌──────────────────────┐ ┌──────────────────────┐ ┌─────────────────────┐  │
+│  │   Objective Engine   │ │    Scoring Engine    │ │   Timeline Engine   │  │
+│  │ (Automated Evidence) │ │(Traceable Point Agg) │ │ (Telemetry Audit)   │  │
+│  └──────────────────────┘ └──────────────────────┘ └─────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                         Reset Engine                                  │  │
+│  │           (Container Teardown + Health Audit Verification)            │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│               Emulated OT Target System (OilSprings Lab)                    │
+│  ┌─────────────────┐   ┌──────────────────┐   ┌──────────────────────────┐  │
+│  │ OpenPLC Modbus  │   │ ScadaBR HMI      │   │ Suricata/Scapy IDS       │  │
+│  │ 10.10.2.10:502  │   │ 10.10.3.20:8080  │   │ 10.10.4.41 (Net-Sniff)   │  │
+│  └─────────────────┘   └──────────────────┘   └──────────────────────────┘  │
+│  ┌─────────────────┐   ┌──────────────────┐   ┌──────────────────────────┐  │
+│  │ Pentest Station │   │ Log Collector    │   │ VyOS/Router Bridge       │  │
+│  │ 10.10.5.50      │   │ 10.10.4.40:5000  │   │ Layer 2/3 Segmentation   │  │
+│  └─────────────────┘   └──────────────────┘   └──────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+For detailed architecture diagrams and network rules, see [docs/architecture.md](docs/architecture.md).
+
+---
+
+## ⚡ Core Analytical Engines
+
+| Engine | File Location | Core Responsibility |
+|---|---|---|
+| **Objective Engine** | `backend/engines/objectiveEngine.js` | Evaluates deterministic predicates against telemetry events, binding foreign keys to passed objectives. |
+| **Scoring Engine** | `backend/engines/scoringEngine.js` | Computes transparent point totals, enforces pass thresholds (75%) and mandatory objective constraints. |
+| **Timeline Engine** | `backend/engines/timelineEngine.js` | Derives chronological event sequence directly from telemetry audit logs with relative time offsets. |
+| **Reset Engine** | `backend/engines/resetEngine.js` | Orchestrates container teardown (`down -v`), reconstruction (`up -d`), and HTTP health check audits. |
+
+---
+
+## 🚀 Quick Start Guide
 
 ### Prerequisites
+- **Node.js**: >= 18.0.0
+- **Docker & Docker Compose**: v2+
+- **Python**: >= 3.9 (for Scapy / IDS simulation)
 
-- Docker Desktop (running)
-- Node.js 16+ and npm
-- 4GB+ RAM
-- Windows/Linux/Mac
-
-### Installation
-
-```powershell
-# Clone or navigate to project
-cd "C:\Users\navin\OneDrive\문서\MY cyber\CyberPro\My Cyber pro"
+### 1. Installation
+```bash
+# Clone repository
+git clone https://github.com/navin2006-kumar/CyberPro.git
+cd CyberPro/"My Cyber pro"
 
 # Install dependencies
 npm install
 
-# Start portal
+# Configure environment
+cp .env.example .env
+```
+
+### 2. Database Migration
+Initialize the database with the cyber range schema (scenarios, telemetry, scores, reset records):
+```bash
+npm run migrate
+```
+
+### 3. Run Automated Tests
+Verify platform integrity via the master test suite:
+```bash
+npm test
+```
+
+### 4. Start the Application
+```bash
 npm start
 ```
-
-### Access Portal
-
-1. Open http://localhost:3000
-2. Login: `admin` / `admin123`
-3. Go to **Labs**
-4. Click any lab → **Launch Lab**
-5. Services auto-open in new tabs! 🎉
-
-## 📦 Available Labs
-
-### 1. OpenPLC Controller (Beginner)
-**What:** Real PLC programming environment  
-**Services:** OpenPLC Web Interface (8080)  
-**Learn:** Ladder logic, Modbus, I/O control  
-**Time:** 60 minutes
-
-### 2. SCADA Dashboard (Beginner)
-**What:** Node-RED based SCADA system  
-**Services:** Flow Editor (1880), Dashboard (1881)  
-**Learn:** Data flows, visualization, monitoring  
-**Time:** 60 minutes
-
-### 3. Network Security (Intermediate)
-**What:** Packet capture and analysis  
-**Services:** Network Monitor (8082)  
-**Learn:** tcpdump, traffic analysis, diagnostics  
-**Time:** 50 minutes
-
-### 4. Penetration Testing (Advanced)
-**What:** Kali Linux tools in browser  
-**Services:** Web Terminal (7681)  
-**Learn:** nmap, metasploit, ethical hacking  
-**Time:** 90 minutes
-
-## 🎓 Learning Path
-
-**Recommended Order:**
-1. Start with **OpenPLC** - Understand industrial systems
-2. Then **SCADA Dashboard** - Build monitoring interfaces
-3. Next **Network Security** - Analyze traffic
-4. Finally **Penetration Testing** - Test security
-
-## 🔧 Manual Lab Launch
-
-You can also launch labs directly:
-
-```powershell
-# OpenPLC
-cd labs/openplc
-docker-compose up -d
-
-# SCADA Dashboard
-cd labs/scada-dashboard
-docker-compose up -d
-
-# Network Security
-cd labs/network-security
-docker-compose up -d
-
-# Penetration Testing
-cd labs/pentest
-docker-compose up -d
-```
-
-## 📖 Documentation
-
-Each lab has detailed documentation:
-- `labs/openplc/README.md`
-- `labs/scada-dashboard/README.md`
-- `labs/network-security/README.md`
-- `labs/pentest/README.md`
-
-## 🐛 Troubleshooting
-
-### Portal won't start
-```powershell
-# Check if port 3000 is free
-netstat -ano | findstr :3000
-
-# Restart portal
-npm start
-```
-
-### Lab won't launch
-```powershell
-# Check Docker is running
-docker ps
-
-# View lab logs
-docker logs <container_name>
-
-# Rebuild lab
-cd labs/<lab_name>
-docker-compose build --no-cache
-docker-compose up -d
-```
-
-### Services not accessible
-- Wait 30-60 seconds for containers to fully start
-- Check firewall isn't blocking ports
-- Verify no port conflicts: `netstat -ano | findstr :<port>`
-
-## 🎯 Project Structure
-
-```
-CyberPro/
-├── server.js           # Portal backend
-├── db.js              # Database with lab definitions
-├── labManager.js      # Docker lab management
-├── public/            # Frontend files
-│   ├── labs.html
-│   ├── lab-detail.html
-│   └── js/
-└── labs/              # Lab configurations
-    ├── openplc/
-    ├── scada-dashboard/
-    ├── network-security/
-    └── pentest/
-```
-
-## 💡 Tips
-
-- **Build Once** - First lab launch builds Docker images (~5-15 min)
-- **Subsequent Starts** - Instant after initial build
-- **Stop Labs** - Use portal or `docker-compose down`
-- **Save Work** - Some labs persist data in volumes
-- **Browser Popups** - Allow popups for localhost:3000
-
-## 🤝 Contributing
-
-Want to add more labs? Each lab needs:
-1. `Dockerfile` - Container definition
-2. `docker-compose.yml` - Service configuration
-3. `README.md` - Learning guide
-4. Entry in `db.js` - Portal integration
-
-## 📝 License
-
-Open-source labs using:
-- OpenPLC (GPL-3.0)
-- Node-RED (Apache-2.0)
-- Kali Linux (GPL)
-- Various open-source tools
-
-## 🎉 Get Started!
-
-```powershell
-npm start
-```
-
-Then visit http://localhost:3000 and start learning! 🚀
+Access the management portal at **`http://localhost:3000`**.
 
 ---
 
-**Happy Hacking!** 🔐
+## 🛡️ Security & Hardening Controls
+
+The cyber range is hardened according to modern defense-in-depth principles:
+- **No Privileged Containers**: `privileged: true` has been eliminated from all services.
+- **Dropped Capabilities**: Containers enforce `cap_drop: ALL`, retaining only required capabilities (`NET_ADMIN` on PLC, `NET_RAW` on IDS).
+- **Resource Constraints**: Hard memory quotas (512MB–1024MB) and CPU allocations (0.5–1.0) prevent host starvation.
+- **Isolated Subnets**: Internal OT networks declare `internal: true`, blocking default gateway egress to the host or internet.
+- **Role-Based Access Control**: Strict privilege tiers (`student`, `instructor`, `admin`) enforced via centralized middleware.
+- **Emergency Stop**: Audited killswitch (`POST /api/emergency-stop`) allows instructors to immediately terminate all active containers.
+
+See [docs/security.md](docs/security.md) and [docs/risk-register.md](docs/risk-register.md) for full threat models and mitigations.
+
+---
+
+## 🧪 Automated Verification Suite
+
+CyberPro includes 7 comprehensive automated test suites with 51 assertions:
+
+```
+┌─────────┬───────────────────────────────────┬──────────┬──────────┐
+│ (index) │ name                              │ status   │ duration │
+├─────────┼───────────────────────────────────┼──────────┼──────────┤
+│ 0       │ 'Unit: Objective Engine'          │ 'PASSED' │ '1609ms' │
+│ 1       │ 'Unit: Scoring Engine'            │ 'PASSED' │ '2001ms' │
+│ 2       │ 'Unit: Timeline Engine'           │ 'PASSED' │ '2015ms' │
+│ 3       │ 'Unit: Authentication'            │ 'PASSED' │ '3247ms' │
+│ 4       │ 'Unit: RBAC Middleware'           │ 'PASSED' │ '1484ms' │
+│ 5       │ 'Integration: Scenario Lifecycle' │ 'PASSED' │ '1740ms' │
+│ 6       │ 'Security: RBAC Enforcement'      │ 'PASSED' │ '1726ms' │
+└─────────┴───────────────────────────────────┴──────────┴──────────┘
+Total Suites: 7 | Passed: 7 | Failed: 0
+```
+
+To run individual suites, refer to [docs/testing.md](docs/testing.md).
+
+---
+
+## 📚 Complete Documentation Suite
+
+- 📐 [Architecture Specification](docs/architecture.md) — System components, network layout, database schema.
+- 🚀 [Deployment & Operations Guide](docs/deployment.md) — Prerequisites, step-by-step setup, troubleshooting.
+- 🎯 [Scenario Specification: PLC-001](docs/scenarios.md) — Threat model, learning objectives, attack workflow.
+- 📊 [Scoring Methodology](docs/scoring.md) — Mathematical formulation, evidence binding, debrief dimensions.
+- 🔒 [Security Architecture](docs/security.md) — Container hardening, network isolation, RBAC matrix.
+- ⚠️ [Risk Register](docs/risk-register.md) — Threat matrix, vulnerability analysis, technical mitigations.
+- 🔁 [Reproducibility Protocol](docs/reproducibility.md) — Deterministic pinning, clean-state reset protocol.
+- 📋 [Research Manuscript Mapping](docs/paper-mapping.md) — Traceability matrix linking manuscript sections to codebase.
+- 🧪 [Automated Testing Manual](docs/testing.md) — Unit, integration, security test execution and CI guide.
+
+---
+
+## 📄 License & Attribution
+
+CyberPro is distributed under the **MIT License**.  
+Developed under Project **P-2024-28-CS-118**: *Scenario-Driven Cyber Range for Safe, Measurable Defensive Skills Practice*.

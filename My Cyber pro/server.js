@@ -7,6 +7,7 @@ const bcrypt = require('bcrypt');
 const WebSocket = require('ws');
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
 const axios = require('axios');
 
 const Database = require('./db');
@@ -23,31 +24,52 @@ const PYTHON_CHATBOT_URL = process.env.PYTHON_CHATBOT_URL || 'http://localhost:5
 const db = new Database(process.env.DB_PATH);
 const labManager = new LabManager(db);
 
-// Middleware
-app.use(cors());
+// Share instances with route modules via app.locals
+app.locals.db = db;
+app.locals.labManager = labManager;
+
+// Security: Session secret validation
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+        console.error('FATAL: SESSION_SECRET environment variable is required in production.');
+        process.exit(1);
+    }
+    console.warn('⚠️  WARNING: SESSION_SECRET is not set in environment. Using fallback development secret.');
+}
+
+// CORS configuration — restricted in production, permissive in local development
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000').split(',');
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+            callback(null, true);
+        } else {
+            callback(new Error('Blocked by CORS'));
+        }
+    },
+    credentials: true
+}));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// Session configuration
+// Session configuration with security flags
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'cyber-lab-secret-key',
+    secret: SESSION_SECRET || 'cyber-lab-secret-key-dev-only-32chars',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // Set to true if using HTTPS
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
 
-// Authentication middleware
-const requireAuth = (req, res, next) => {
-    if (req.session.userId) {
-        next();
-    } else {
-        res.status(401).json({ success: false, message: 'Authentication required' });
-    }
-};
+// Authentication & RBAC middleware
+const { requireAuth, requireRole, auditLog } = require('./backend/middleware/auth');
 
 // WebSocket connection handling
 wss.on('connection', (ws) => {
@@ -429,6 +451,32 @@ app.get('/api/dashboard/activity', requireAuth, async (req, res) => {
     }
 });
 
+// ============ Cyber Range Research APIs ============
+const telemetryRoutes = require('./backend/routes/telemetry');
+const scenarioRoutes = require('./backend/routes/scenarios');
+const reportRoutes = require('./backend/routes/reports');
+
+app.use('/api/telemetry', telemetryRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/scenarios', scenarioRoutes);
+app.use('/api', scenarioRoutes); // Also maps /api/exercises/start, /api/exercises/:id
+
+// Emergency Stop route (Admin only, audited)
+app.post('/api/emergency-stop', requireAuth, requireRole('admin'), auditLog('emergency_stop'), async (req, res) => {
+    try {
+        console.warn(`🚨 EMERGENCY STOP initiated by admin user ${req.session.userId} (${req.session.username})`);
+        await labManager.stopAllLabs();
+        broadcast({
+            type: 'emergency_stop',
+            message: 'All running cyber range labs terminated by administrator emergency stop.'
+        });
+        res.json({ success: true, message: 'All active lab environments terminated.' });
+    } catch (err) {
+        console.error('Emergency stop error:', err);
+        res.status(500).json({ success: false, message: 'Emergency stop failed', error: err.message });
+    }
+});
+
 // Serve frontend
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -452,6 +500,43 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
+async function seedDefaultScenario() {
+    try {
+        const existing = await new Promise((resolve) => {
+            db.db.get('SELECT id FROM scenarios WHERE id = ?', ['PLC-001'], (err, row) => resolve(row));
+        });
+        if (!existing) {
+            const scenarioPath = path.join(__dirname, 'scenarios', 'PLC-001', 'scenario.json');
+            if (fs.existsSync(scenarioPath)) {
+                const data = JSON.parse(fs.readFileSync(scenarioPath, 'utf8'));
+                const lab = await new Promise((resolve) => {
+                    db.db.get('SELECT id FROM labs WHERE slug = ?', [data.lab_id], (err, row) => resolve(row));
+                });
+                const labId = lab ? lab.id : 1;
+
+                db.db.run(
+                    `INSERT INTO scenarios (id, name, description, difficulty, time_limit_minutes, lab_id, version)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [data.scenario_id, data.name, data.description, data.difficulty, data.time_limit_minutes, labId, data.version || '1.0']
+                );
+
+                if (Array.isArray(data.objectives)) {
+                    data.objectives.forEach((obj, idx) => {
+                        db.db.run(
+                            `INSERT OR REPLACE INTO scenario_objectives (id, scenario_id, name, description, points, required, detection_logic, order_index)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [obj.id, data.scenario_id, obj.name, obj.description, obj.points, obj.required ? 1 : 0, JSON.stringify(obj.detection), idx + 1]
+                        );
+                    });
+                }
+                console.log('✓ Seeded scenario PLC-001 with verifiable objectives');
+            }
+        }
+    } catch (e) {
+        console.error('Scenario seed notice:', e.message);
+    }
+}
+
 // Start server only after database is ready
 async function startServer() {
     try {
@@ -459,6 +544,8 @@ async function startServer() {
         console.log('⏳ Initializing database...');
         await db.waitForReady();
         console.log('✓ Database ready');
+
+        await seedDefaultScenario();
 
         // Start HTTP server
         server.listen(PORT, () => {
@@ -470,8 +557,7 @@ async function startServer() {
             console.log(`🧪 Labs:      http://localhost:${PORT}/labs`);
             console.log(`\n✓ Database initialized`);
             console.log(`✓ Lab manager ready`);
-            console.log(`✓ WebSocket server running`);
-            console.log(`\n📝 Default credentials: admin / admin123\n`);
+            console.log(`✓ WebSocket server running\n`);
         });
     } catch (error) {
         console.error('❌ Failed to start server:', error);

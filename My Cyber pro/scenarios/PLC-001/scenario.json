@@ -1,0 +1,110 @@
+{
+  "scenario_id": "PLC-001",
+  "name": "PLC Attack Detection",
+  "version": "1.0",
+  "description": "A simulated Modbus/TCP reconnaissance attack is launched from the pentest container against the OpenPLC controller. Students must detect the attack via IDS alerts, identify the affected host, analyse log evidence, and contain the incident.",
+  "difficulty": "medium",
+  "time_limit_minutes": 30,
+  "lab_id": "oilsprings",
+  "author": "CyberPro Project — P-2024-28-CS-118",
+  "learning_objectives_text": [
+    "Detect anomalous Modbus/TCP traffic using an IDS",
+    "Identify the source and target of an OT network attack",
+    "Analyse event logs to establish attack timeline",
+    "Apply network containment to isolate an affected OT device"
+  ],
+  "network_topology": {
+    "attacker": { "container": "oilsprings_pentest", "ip": "10.10.5.50", "network": "l3_pentest_network" },
+    "plc": { "container": "oilsprings_plc", "ip": "10.10.2.10", "network": "l2_network" },
+    "scada": { "container": "oilsprings_scada", "ip": "10.10.3.20", "network": "l3_scada_network" },
+    "ids": { "container": "oilsprings_ids", "ip": "10.10.4.41", "network": "l3_security_network" },
+    "collector": { "container": "oilsprings_collector", "ip": "10.10.4.40", "network": "l3_security_network" }
+  },
+  "objectives": [
+    {
+      "id": "PLC-001-OBJ-1",
+      "name": "Detect Suspicious PLC Activity",
+      "description": "Identify anomalous network traffic targeting the PLC on port 502 (Modbus/TCP). Evidence: IDS alert with event_type=modbus_anomaly must exist in telemetry.",
+      "points": 25,
+      "required": true,
+      "detection": {
+        "source": "ids",
+        "event_type": "modbus_anomaly",
+        "field_checks": {
+          "dst_port": 502,
+          "severity": ["medium", "high", "critical"]
+        }
+      }
+    },
+    {
+      "id": "PLC-001-OBJ-2",
+      "name": "Identify Affected Host",
+      "description": "Determine and submit the IP address of the compromised PLC controller. Evidence: student must submit a host_identified event containing the correct IP.",
+      "points": 25,
+      "required": true,
+      "detection": {
+        "source": "student",
+        "event_type": "host_identified",
+        "field_checks": {
+          "identified_ip": "10.10.2.10"
+        }
+      }
+    },
+    {
+      "id": "PLC-001-OBJ-3",
+      "name": "Analyse IDS Logs",
+      "description": "Review IDS alert logs and submit a log analysis report identifying the attack vector. Evidence: student must submit a log_analysis_submitted event with non-empty analysis_text.",
+      "points": 25,
+      "required": true,
+      "detection": {
+        "source": "student",
+        "event_type": "log_analysis_submitted",
+        "field_checks": {
+          "analysis_text_min_length": 50
+        }
+      }
+    },
+    {
+      "id": "PLC-001-OBJ-4",
+      "name": "Contain Incident",
+      "description": "Block the attacker or isolate the PLC from the network. Evidence: student must submit a containment_action event with a valid action type.",
+      "points": 25,
+      "required": false,
+      "detection": {
+        "source": "student",
+        "event_type": "containment_action",
+        "field_checks": {
+          "action_type": ["block_ip", "isolate_container", "firewall_rule", "disconnect_network"]
+        }
+      }
+    }
+  ],
+  "scoring_rationale": "Each of the 4 objectives is worth 25 points (total 100). Objectives 1-3 are required for passing. Objective 4 (containment) is optional bonus. Minimum passing score: 75. Every score is directly traceable to a telemetry event ID stored in objective_results.evidence_event_ids.",
+  "success_conditions": {
+    "min_objectives_required_passed": 3,
+    "min_score": 75
+  },
+  "allowed_actions": [
+    "View IDS dashboard at http://localhost:8084",
+    "View collector logs at http://localhost:8085",
+    "Submit investigation findings via CyberPro portal",
+    "Use pentest terminal at http://localhost:8086 to simulate attacker"
+  ],
+  "reset_method": "docker_compose_down_up",
+  "reset_verification": {
+    "expected_containers": [
+      "oilsprings_plc",
+      "oilsprings_scada",
+      "oilsprings_ews",
+      "oilsprings_ids",
+      "oilsprings_collector",
+      "oilsprings_pentest",
+      "oilsprings_router"
+    ],
+    "health_check_endpoints": [
+      { "container": "oilsprings_plc", "url": "http://localhost:8080", "expected_status": 200 },
+      { "container": "oilsprings_ids", "url": "http://localhost:8084/api/health", "expected_status": 200 },
+      { "container": "oilsprings_collector", "url": "http://localhost:8085/api/health", "expected_status": 200 }
+    ]
+  }
+}

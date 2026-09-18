@@ -1,101 +1,187 @@
 name: oilsprings
 
+# CyberPro Cyber Range — OilSprings Industrial Lab
+# Scenario: PLC Attack Detection (PLC-001)
+# All networks are isolated bridge networks with no external internet access.
+# Resource limits enforced on all containers to prevent host exhaustion.
+
 networks:
   l2_network:
     driver: bridge
+    internal: false   # PLC layer — allow controlled external port mapping only
     ipam:
       config:
         - subnet: 10.10.2.0/24
 
   l3_scada_network:
     driver: bridge
+    internal: true    # SCADA layer — fully isolated, no host internet
     ipam:
       config:
         - subnet: 10.10.3.0/24
 
   l3_security_network:
     driver: bridge
+    internal: true    # Security monitoring — fully isolated
     ipam:
       config:
         - subnet: 10.10.4.0/24
 
   l3_pentest_network:
     driver: bridge
+    internal: false   # Pentest — controlled external port mapping only
     ipam:
       config:
         - subnet: 10.10.5.0/24
 
 services:
+
   plc:
-    build: C:\Users\navin\OneDrive\문서\MY cyber\CyberPro\labshock\oilsprings\plc
+    build: ./plc
     container_name: oilsprings_plc
     cap_add:
       - NET_ADMIN
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     networks:
       l2_network:
         ipv4_address: 10.10.2.10
     ports:
       - "8080:8080"
     restart: unless-stopped
+    mem_limit: 512m
+    cpus: "0.5"
+    environment:
+      - EXERCISE_ID=${EXERCISE_ID:-unset}
+      - COLLECTOR_URL=http://10.10.4.40:5000
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   scada:
-    build: C:\Users\navin\OneDrive\문서\MY cyber\CyberPro\labshock\oilsprings\scada
+    build: ./scada
     container_name: oilsprings_scada
     cap_add:
       - NET_ADMIN
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     networks:
       l3_scada_network:
         ipv4_address: 10.10.3.20
     ports:
-      - '8081:1881'
+      - "8081:1881"
     restart: unless-stopped
+    mem_limit: 512m
+    cpus: "0.5"
     dns:
       - 127.0.0.11
+    environment:
+      - EXERCISE_ID=${EXERCISE_ID:-unset}
+      - COLLECTOR_URL=http://10.10.4.40:5000
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:1881"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
 
   ews:
-    build: C:\Users\navin\OneDrive\문서\MY cyber\CyberPro\labshock\oilsprings\ews
+    build: ./ews
     container_name: oilsprings_ews
     cap_add:
       - NET_ADMIN
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     networks:
       l3_scada_network:
         ipv4_address: 10.10.3.11
     ports:
       - "8083:5911"
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: "0.25"
+    environment:
+      - EXERCISE_ID=${EXERCISE_ID:-unset}
 
   ids:
-    build: C:\Users\navin\OneDrive\문서\MY cyber\CyberPro\labshock\oilsprings\ids
+    build: ./ids
     container_name: oilsprings_ids
+    # Only NET_RAW required for packet capture — NOT privileged: true
     cap_add:
       - NET_ADMIN
       - NET_RAW
-    privileged: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     networks:
       l3_security_network:
         ipv4_address: 10.10.4.41
     ports:
       - "8084:1443"
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: "0.25"
+    environment:
+      - EXERCISE_ID=${EXERCISE_ID:-unset}
+      - COLLECTOR_URL=http://10.10.4.40:5000
+      - BACKEND_TELEMETRY_URL=${BACKEND_TELEMETRY_URL:-http://host.docker.internal:3000/api/telemetry/event}
+      - MONITOR_INTERFACE=eth0
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:1443/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   collector:
-    build: C:\Users\navin\OneDrive\문서\MY cyber\CyberPro\labshock\oilsprings\collector
+    build: ./collector
     container_name: oilsprings_collector
     cap_add:
       - NET_ADMIN
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     networks:
       l3_security_network:
         ipv4_address: 10.10.4.40
     ports:
       - "8085:2443"
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: "0.25"
+    volumes:
+      - collector_logs:/app/logs
+    environment:
+      - EXERCISE_ID=${EXERCISE_ID:-unset}
+      - BACKEND_TELEMETRY_URL=${BACKEND_TELEMETRY_URL:-http://host.docker.internal:3000/api/telemetry/event}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:2443/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   pentest:
-    build: C:\Users\navin\OneDrive\문서\MY cyber\CyberPro\labshock\oilsprings\pentest
+    build: ./pentest
     container_name: oilsprings_pentest
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     networks:
       l3_pentest_network:
         ipv4_address: 10.10.5.50
@@ -103,12 +189,20 @@ services:
       - "2222:22"
       - "8086:3443"
     restart: unless-stopped
+    mem_limit: 512m
+    cpus: "0.5"
+    environment:
+      - EXERCISE_ID=${EXERCISE_ID:-unset}
 
   router:
-    build: C:\Users\navin\OneDrive\문서\MY cyber\CyberPro\labshock\oilsprings\router
+    build: ./router
     container_name: oilsprings_router
     cap_add:
       - NET_ADMIN
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     networks:
       l2_network:
         ipv4_address: 10.10.2.2
@@ -121,3 +215,11 @@ services:
     ports:
       - "8087:5443"
     restart: unless-stopped
+    mem_limit: 128m
+    cpus: "0.25"
+    environment:
+      - EXERCISE_ID=${EXERCISE_ID:-unset}
+
+volumes:
+  collector_logs:
+    name: oilsprings_collector_logs
