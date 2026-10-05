@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-05T16:10:09.1474195Z",
+  "execution_mode": "STATIC_CONFIGURATION_REVIEW_ONLY",
+  "docker_engine": {
+    "available": false,
+    "command": "docker info --format \"Docker daemon: {{.ServerVersion}}\"",
+    "observed": "Could not connect to npipe:////./pipe/dockerDesktopLinuxEngine"
+  },
+  "containment_claim": "NOT VERIFIED: no live network behavior was tested; configuration alone does not establish containment.",
+  "network_summary": {
+    "networks": [
+      { "name": "l2_network", "subnet": "10.10.2.0/24", "internal": false, "members": ["plc", "router"] },
+      { "name": "l3_scada_network", "subnet": "10.10.3.0/24", "internal": true, "members": ["scada", "ews", "router"] },
+      { "name": "l3_security_network", "subnet": "10.10.4.0/24", "internal": true, "members": ["ids", "collector", "router"] },
+      { "name": "l3_pentest_network", "subnet": "10.10.5.0/24", "internal": false, "members": ["pentest", "router"] }
+    ],
+    "router": "oilsprings_router is attached to all four networks and has NET_ADMIN; router.py attempts to enable IPv4 forwarding.",
+    "published_host_ports": [
+      { "service": "plc", "host_port": 8080, "container_port": 8080, "protocol": "tcp" },
+      { "service": "scada", "host_port": 8081, "container_port": 1881, "protocol": "tcp" },
+      { "service": "ews", "host_port": 8083, "container_port": 5911, "protocol": "tcp" },
+      { "service": "ids", "host_port": 8084, "container_port": 1443, "protocol": "tcp" },
+      { "service": "collector", "host_port": 8085, "container_port": 2443, "protocol": "tcp" },
+      { "service": "pentest", "host_port": 2222, "container_port": 22, "protocol": "tcp" },
+      { "service": "pentest", "host_port": 8086, "container_port": 3443, "protocol": "tcp" },
+      { "service": "router", "host_port": 8087, "container_port": 5443, "protocol": "tcp" }
+    ],
+    "allowed_internal_communication_declared": [
+      "Pentest 10.10.5.50 -> router 10.10.5.2 -> PLC 10.10.2.10 TCP/502 (authorized lab scenario path)",
+      "PLC 10.10.2.10 -> collector 10.10.4.40 TCP/5000 (COLLECTOR_URL configured in Compose)",
+      "IDS 10.10.4.41 -> host.docker.internal TCP/3000 (BACKEND_TELEMETRY_URL configured in Compose)",
+      "SCADA/EWS intra-subnet communication on l3_scada_network",
+      "IDS/collector intra-subnet communication on l3_security_network"
+    ],
+    "intended_blocked_paths_unverified": [
+      "Pentest to SCADA/EWS without explicit authorization",
+      "Direct external egress from SCADA and security networks",
+      "Any cross-network route not listed as an authorized lab path"
+    ]
+  },
+  "tests": [
+    {
+      "id": "pentest-to-authorized-plc",
+      "source": "oilsprings_pentest (10.10.5.50)",
+      "destination": "oilsprings_plc (10.10.2.10)",
+      "port": "TCP/502",
+      "expected_result": "PASS",
+      "observed_result": "NOT TESTED",
+      "timestamp": "2026-10-05T16:10:09.1474195Z",
+      "notes": "Docker Engine unavailable. The pentest entrypoint route targets 192.168.2.0/24 via 192.168.5.2, not the Compose 10.10.2.0/24 subnet/router address."
+    },
+    {
+      "id": "plc-to-authorized-collector",
+      "source": "oilsprings_plc (10.10.2.10)",
+      "destination": "oilsprings_collector (10.10.4.40)",
+      "port": "TCP/5000",
+      "expected_result": "PASS",
+      "observed_result": "NOT TESTED",
+      "timestamp": "2026-10-05T16:10:09.1474195Z",
+      "notes": "Docker Engine unavailable. PLC entrypoint routes 192.168.4.0/24 via 192.168.2.2, not the Compose 10.10.4.0/24 subnet/router address."
+    },
+    {
+      "id": "ids-to-authorized-telemetry",
+      "source": "oilsprings_ids (10.10.4.41)",
+      "destination": "host.docker.internal (CyberPro backend)",
+      "port": "TCP/3000",
+      "expected_result": "PASS",
+      "observed_result": "NOT TESTED",
+      "timestamp": "2026-10-05T16:10:09.1474195Z",
+      "notes": "Compose config declares the backend URL, but does not inject EXERCISE_ID or CONTAINER_SECRET; connectivity and event acceptance were not tested."
+    },
+    {
+      "id": "pentest-to-controlled-external-egress-sink",
+      "source": "oilsprings_pentest (10.10.5.50)",
+      "destination": "No isolated controlled egress sink is configured",
+      "port": "TCP/443",
+      "expected_result": "BLOCKED",
+      "observed_result": "NOT TESTED",
+      "timestamp": "2026-10-05T16:10:09.1474195Z",
+      "notes": "No public endpoint was contacted. l3_pentest_network is not marked internal, so configuration does not prove egress is blocked."
+    },
+    {
+      "id": "unauthorized-pentest-to-scada",
+      "source": "oilsprings_pentest (10.10.5.50)",
+      "destination": "oilsprings_ews (10.10.3.11)",
+      "port": "TCP/5911",
+      "expected_result": "BLOCKED",
+      "observed_result": "NOT TESTED",
+      "timestamp": "2026-10-05T16:10:09.1474195Z",
+      "notes": "No cross-network probe was run. The router attaches to both networks; router rules are not shown to enforce a packet-filter policy."
+    },
+    {
+      "id": "host-accessible-published-services",
+      "source": "Docker host",
+      "destination": "localhost / host interfaces",
+      "port": "TCP/8080, 8081, 8083, 8084, 8085, 2222, 8086, 8087",
+      "expected_result": "PASS",
+      "observed_result": "NOT TESTED",
+      "timestamp": "2026-10-05T16:10:09.1474195Z",
+      "notes": "Compose declares these host port mappings. Reachability, bind addresses, and service health were not probed. PLC Modbus TCP/502 is not published in this Compose file."
+    }
+  ],
+  "configuration_findings": [
+    {
+      "category": "UNEXPECTED",
+      "id": "router-rules-permit-any-any",
+      "evidence": "labs/oilsprings/router/rules.json contains src=any, dst=any, port=any, proto=any, action=ACCEPT.",
+      "impact": "If consumed as an enforcement policy, this is permissive rather than a deny-by-default containment policy. Runtime use was not tested."
+    },
+    {
+      "category": "UNEXPECTED",
+      "id": "router-ui-rules-use-stale-subnets",
+      "evidence": "router/router.py lists 192.168.2.0/24, 192.168.3.0/24, and 192.168.4.0/24; Compose uses 10.10.2.0/24 through 10.10.5.0/24.",
+      "impact": "The displayed rules do not describe the current Compose subnets. The UI list is not evidence that host firewall rules are installed."
+    },
+    {
+      "category": "UNEXPECTED",
+      "id": "service-static-routes-use-stale-subnets",
+      "evidence": "PLC, pentest, collector, and router entrypoints add routes using 192.168.x addresses while Compose assigns 10.10.x addresses.",
+      "impact": "Configured intended routed paths may not work as documented; runtime routing was not tested."
+    },
+    {
+      "category": "UNEXPECTED",
+      "id": "router-is-multihomed-forwarder",
+      "evidence": "The router joins all four networks, has NET_ADMIN, and router.py attempts to enable net.ipv4.ip_forward; no effective firewall rule application was found in inspected router files.",
+      "impact": "Internal networks can potentially be transit-connected through this router. This is a configuration risk, not an observed successful route."
+    },
+    {
+      "category": "UNEXPECTED",
+      "id": "pentest-network-not-internal",
+      "evidence": "l3_pentest_network has internal=false (Compose default).",
+      "impact": "It may have a Docker bridge default route; external egress blocking is not established."
+    }
+  ],
+  "limitations": [
+    "All six requested traffic tests have observed_result NOT TESTED because Docker Engine could not connect to npipe:////./pipe/dockerDesktopLinuxEngine.",
+    "Only Compose rendering and source configuration were inspected; there was no packet capture, connectivity probe, or host-port request.",
+    "No public system was contacted; no controlled external sink was configured.",
+    "No statement that the network is fully isolated is supported by this report."
+  ]
+}

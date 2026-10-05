@@ -11,7 +11,7 @@
 
 CyberPro is an isolated, container-based cyber range architected to provide safe, reproducible, and verifiable cybersecurity training and defensive skill evaluation. The platform bridges realistic industrial process emulation with rigorous, evidence-traceable assessment.
 
-Unlike traditional Capture-the-Flag (CTF) environments that reward binary flag extraction, CyberPro evaluates defensive competencies (detection, incident correlation, containment, and reflective debriefing) through automated telemetry analysis.
+Unlike traditional Capture-the-Flag (CTF) environments that reward binary flag extraction, CyberPro evaluates defensive competencies (detection, incident correlation, containment, and reflective debriefing) through automated telemetry analysis. OilSprings network containment is a configured objective, not a verified property; see [results/network-containment.json](../results/network-containment.json).
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -48,19 +48,23 @@ Unlike traditional Capture-the-Flag (CTF) environments that reward binary flag e
 
 ## 2. Multi-Tiered Network Topology
 
-The industrial cyber range enforces strict Layer 2 and Layer 3 isolation across four distinct bridge networks using Docker networking. No internal OT network possesses direct public internet routing.
+The OilSprings Compose model declares four bridge networks. These declarations do not establish Layer 2/3 containment: the router joins all four networks, has `NET_ADMIN`, and attempts to enable IPv4 forwarding. Docker Engine was unavailable for runtime connectivity tests on 2026-10-05.
 
-| Network Name | Subnet | Isolation | Purpose | Connected Containers |
+| Network Name | Subnet | Compose setting | Purpose | Connected Containers |
 |---|---|---|---|---|
 | `l2_network` | `10.10.2.0/24` | Internal / Controlled Port Map | Field control bus (Modbus/TCP) | `oilsprings_plc`, `oilsprings_router` |
 | `l3_scada_network` | `10.10.3.0/24` | Fully Internal (`internal: true`) | Supervisory control and HMI | `oilsprings_scada`, `oilsprings_ews`, `oilsprings_router` |
 | `l3_security_network` | `10.10.4.0/24` | Fully Internal (`internal: true`) | Out-of-band monitoring & logs | `oilsprings_ids`, `oilsprings_collector`, `oilsprings_router` |
 | `l3_pentest_network` | `10.10.5.0/24` | Controlled Port Map | Adversary simulation origin | `oilsprings_pentest`, `oilsprings_router` |
 
-### Network Access Control Rules
-1. **Adversary Traffic Path**: The pentest container (`10.10.5.50`) must route across the emulated router to reach the PLC subnet.
-2. **Monitoring Tap**: The IDS monitor taps traffic traversing the ICS bus without intercepting or altering payload state.
-3. **Collector Backhaul**: The collector receives logs over the isolated `l3_security_network` and proxies security events to the CyberPro backend via structured JSON REST calls.
+### Intended Paths and Containment Caveats
+- **Authorized exercise path:** pentest (`10.10.5.50`) → router (`10.10.5.2` / `10.10.2.2`) → PLC (`10.10.2.10:502`).
+- **Collector path:** PLC configuration points to collector (`10.10.4.40:5000`) through the router.
+- **Telemetry backhaul:** IDS configuration points to `host.docker.internal:3000`; Compose does not inject `EXERCISE_ID` or `CONTAINER_SECRET` into the IDS service.
+- **Host exposure:** Compose publishes TCP ports `8080`, `8081`, `8083`, `8084`, `8085`, `2222`, `8086`, and `8087`; Modbus/TCP `502` is not published.
+- **Configuration discrepancy:** router rules and PLC/pentest/collector entrypoint routes use `192.168.x` subnets while Compose uses `10.10.x`. `router/rules.json` contains an any-to-any ACCEPT rule, and no effective packet-filter application was found in the inspected router files.
+- **Potential egress/transit:** pentest and L2 bridges are not `internal`; the multi-homed router may transit traffic between subnets. These are configuration risks, not observed connections.
+- **Runtime status:** all six approved containment tests are `NOT TESTED` because Docker Engine was unavailable. Do not describe this topology as fully isolated. See [results/network-containment.json](../results/network-containment.json).
 
 ---
 

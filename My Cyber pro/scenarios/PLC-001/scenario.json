@@ -92,6 +92,8 @@
   ],
   "reset_method": "docker_compose_down_up",
   "reset_verification": {
+    "project_name": "oilsprings",
+    "expected_services": ["scada", "collector", "ews", "ids", "pentest", "plc", "router"],
     "expected_containers": [
       "oilsprings_plc",
       "oilsprings_scada",
@@ -100,6 +102,33 @@
       "oilsprings_collector",
       "oilsprings_pentest",
       "oilsprings_router"
+    ],
+    "expected_networks": ["l2_network", "l3_scada_network", "l3_security_network", "l3_pentest_network"],
+    "expected_network_configurations": {
+      "l2_network": { "driver": "bridge", "internal": false, "subnets": ["10.10.2.0/24"] },
+      "l3_scada_network": { "driver": "bridge", "internal": true, "subnets": ["10.10.3.0/24"] },
+      "l3_security_network": { "driver": "bridge", "internal": true, "subnets": ["10.10.4.0/24"] },
+      "l3_pentest_network": { "driver": "bridge", "internal": false, "subnets": ["10.10.5.0/24"] }
+    },
+    "expected_volumes": ["collector_logs"],
+    "expected_volume_configurations": {
+      "collector_logs": { "driver": "local" }
+    },
+    "configuration_files": [
+      "labs/oilsprings/docker-compose.yml",
+      "labs/oilsprings/ids/monitor.py",
+      "labs/oilsprings/collector/collector.py",
+      "scenarios/PLC-001/scenario.json"
+    ],
+    "expected_files": [
+      { "service": "ids", "path": "/app/config/config.json" },
+      { "service": "ids", "path": "/app/config/sources.json" },
+      { "service": "collector", "path": "/app/config/config.json" },
+      { "service": "collector", "path": "/app/config/sources.json" }
+    ],
+    "temporary_files": [
+      { "service": "collector", "path": "/app/logs/reset-verification-probe.txt" },
+      { "service": "collector", "path": "/app/logs/reset-verification-config.ini" }
     ],
     "health_check_endpoints": [
       { "container": "oilsprings_plc", "url": "http://localhost:8080", "expected_status": 200 },

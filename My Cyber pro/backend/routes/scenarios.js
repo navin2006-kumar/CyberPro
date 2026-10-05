@@ -109,7 +109,25 @@ router.post('/exercises/start', requireAuth, async (req, res) => {
             });
         }
 
-        // 3. Create exercise session
+        const scenarioPath = path.join(__dirname, '../../scenarios', scenario_id, 'scenario.json');
+        let scenarioDefinition;
+        let baselineSnapshot;
+        try {
+            scenarioDefinition = JSON.parse(fs.readFileSync(scenarioPath, 'utf8'));
+            baselineSnapshot = await new ResetEngine(db, labManager)
+                .captureBaseline(scenario.lab_id, scenarioDefinition.reset_verification || {});
+            if (!baselineSnapshot.clean_state_verified) {
+                throw new Error('Initial lab state does not match the configured baseline');
+            }
+        } catch (baselineError) {
+            await labManager.stopLab(scenario.lab_id, req.session.userId);
+            return res.status(503).json({
+                success: false,
+                message: `Could not capture a clean exercise baseline: ${baselineError.message}`
+            });
+        }
+
+        // 3. Create exercise session after baseline capture.
         const exerciseId = uuidv4();
         const envVersion = process.env.npm_package_version || '1.0.0';
         const configVersion = scenario.version || '1.0';
@@ -117,10 +135,10 @@ router.post('/exercises/start', requireAuth, async (req, res) => {
         await new Promise((resolve, reject) => {
             db.db.run(
                 `INSERT INTO exercise_sessions
-                    (id, scenario_id, lab_session_id, user_id, environment_version, config_version)
-                 VALUES (?, ?, ?, ?, ?, ?)`,
+                    (id, scenario_id, lab_session_id, user_id, environment_version, config_version, baseline_snapshot)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [exerciseId, scenario_id, labResult.sessionId || null,
-                 req.session.userId, envVersion, configVersion],
+                 req.session.userId, envVersion, configVersion, JSON.stringify(baselineSnapshot)],
                 (err) => err ? reject(err) : resolve()
             );
         });
@@ -166,6 +184,7 @@ router.post('/exercises/start', requireAuth, async (req, res) => {
             scenario_name: scenario.name,
             time_limit_minutes: scenario.time_limit_minutes,
             objectives_count: objectives.length,
+            baseline_captured_at: baselineSnapshot.captured_at,
             services: labResult.ports || [],
             message: 'Exercise started. Good luck!'
         });
@@ -236,15 +255,14 @@ router.post('/exercises/:id/reset', requireAuth, requireRole('instructor'), asyn
             return res.status(404).json({ success: false, message: 'Exercise not found' });
         }
 
-        // Get scenario for health check endpoints
+        // Load the scenario's reset configuration and the stored pre-exercise baseline.
         const scenarioPath = path.join(
             __dirname, '../../scenarios', exercise.scenario_id, 'scenario.json');
-        let healthEndpoints = [];
-
-        if (fs.existsSync(scenarioPath)) {
-            const scenarioDef = JSON.parse(fs.readFileSync(scenarioPath, 'utf8'));
-            healthEndpoints = scenarioDef.reset_verification?.health_check_endpoints || [];
-        }
+        const scenarioDef = JSON.parse(fs.readFileSync(scenarioPath, 'utf8'));
+        let baselineSnapshot = null;
+        try {
+            baselineSnapshot = exercise.baseline_snapshot ? JSON.parse(exercise.baseline_snapshot) : null;
+        } catch {}
 
         // Get lab ID from scenario
         const scenario = await new Promise((resolve, reject) => {
@@ -254,7 +272,8 @@ router.post('/exercises/:id/reset', requireAuth, requireRole('instructor'), asyn
 
         const resetEngine = new ResetEngine(db, labManager);
         const result = await resetEngine.reset(
-            exerciseId, scenario?.lab_id, req.session.userId, healthEndpoints);
+            exerciseId, scenario?.lab_id, req.session.userId,
+            baselineSnapshot, scenarioDef.reset_verification || {});
 
         res.json({ success: result.success, ...result });
     } catch (err) {

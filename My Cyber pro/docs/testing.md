@@ -25,10 +25,12 @@ The CyberPro testing strategy prioritizes **end-to-end reliability, mathematical
 | **Timeline Engine** | `tests/unit/timelineEngine.test.js` | `TimelineEngine` chronology & description formatting | 5 tests covering event formatting, relative offsets, and severity mapping |
 | **Authentication** | `tests/unit/auth.test.js` | Bcrypt password hashing & credential checking | 5 tests covering hashing, salt uniqueness, and invalid password rejection |
 | **RBAC Middleware** | `tests/unit/rbac.test.js` | `requireAuth` & `requireRole` middleware | 12 tests covering all role permutations and unauthenticated access denial |
+| **Reset Engine** | `tests/unit/resetEngine.test.js` | Baseline, Docker metadata/config hashes, state comparison, residue and health gates | 6 mocked-reset tests; no Docker daemon is used |
 | **Scenario Lifecycle** | `tests/integration/scenario-flow.test.js` | 9-step scenario exercise lifecycle in in-memory SQLite | End-to-end database verification, including exclusion of spoofed evidence and evidence ID persistence; does not run Docker |
 | **Security Matrix** | `tests/security/rbac-enforcement.test.js` | Route privilege boundary defense | 9 tests verifying complete privilege separation |
+| **Evidence Admission** | `tests/security/evidence-admission.test.js` | Telemetry and score admission boundary | 16 explicit ACCEPT/REJECT tests using real HTTP routes and in-memory SQLite |
 
-**Suite Count**: 7 automated test suites. The test runner does not report a single assertion total.
+**Suite Count**: 9 automated test suites. The test runner does not report a single assertion total.
 
 ### Phase 1 Verification Record (2026-10-05)
 Focused commands executed in the project root:
@@ -38,6 +40,33 @@ node tests/unit/scoringEngine.test.js
 node tests/integration/scenario-flow.test.js
 ```
 Observed results: **Objective Engine 13 passed, Scoring Engine 11 passed, Scenario Lifecycle passed through all 9 steps**. Full-suite result is recorded after the Phase 1 run below.
+
+### Phase 2 Verification Record (2026-10-05)
+Commands executed from the project root:
+```bash
+node tests/security/evidence-admission.test.js
+npm test
+```
+Observed results:
+```text
+Evidence Admission: 16 passed, 0 failed
+Total Suites: 8 | Passed: 8 | Failed: 0
+```
+The new cases define acceptance for owner-submitted student events and secret-authenticated IDS events, and rejection for spoofed sources, wrong exercise/scenario/type, invalid or malformed payloads, forged objective IDs, exact duplicates/replays, non-owner evidence/score requests, and cross-user contamination.
+
+These tests verify application-level behavior only. They do not establish complete security assurance or verify a running Docker deployment.
+
+### Phase 3 Reset Verification Record (2026-10-05)
+Command executed:
+```bash
+node tests/unit/resetEngine.test.js
+```
+Observed result: `Results: 6 passed, 0 failed`. All cases are labeled **MOCKED RESET TEST**; Docker snapshots and Compose commands are mocked, while temporary files/config fixtures are actually created and restored by the test.
+
+Full-suite command: `npm test`
+Observed result: `Total Suites: 9 | Passed: 9 | Failed: 0`.
+
+**REAL DOCKER RESET TEST: NOT EXECUTED.** `docker info` could not connect to the Docker Desktop Linux engine, so no real exercise modifications, reset, or live health check were run. [results/reset-verification.json](../results/reset-verification.json) records `status: not_executed` and `clean_state_verified: false`.
 
 ---
 
@@ -57,12 +86,14 @@ node tests/unit/scoringEngine.test.js
 node tests/unit/timelineEngine.test.js
 node tests/unit/auth.test.js
 node tests/unit/rbac.test.js
+node tests/unit/resetEngine.test.js
 
 # Integration tests
 node tests/integration/scenario-flow.test.js
 
 # Security tests
 node tests/security/rbac-enforcement.test.js
+node tests/security/evidence-admission.test.js
 ```
 
 ---

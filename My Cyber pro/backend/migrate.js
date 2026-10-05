@@ -64,8 +64,10 @@ const MIGRATIONS = [
         status              TEXT DEFAULT 'active'
                                 CHECK(status IN ('active','completed','abandoned','reset')),
         environment_version TEXT,
-        config_version      TEXT
+        config_version      TEXT,
+        baseline_snapshot   TEXT
     )`,
+    `ALTER TABLE exercise_sessions ADD COLUMN baseline_snapshot TEXT`,
 
     // ─── Table 4: telemetry_events ───────────────────────────────────────────
     `CREATE TABLE IF NOT EXISTS telemetry_events (
@@ -153,7 +155,8 @@ function runMigration() {
             db.run(sql, (err) => {
                 if (err) {
                     // Column/index already exists — skip gracefully
-                    if (!err.message.includes('already exists')) {
+                    if (!err.message.includes('already exists') &&
+                        !err.message.includes('duplicate column name')) {
                         console.error(`❌ Migration ${i + 1} failed:`, err.message);
                         console.error('   SQL:', sql.substring(0, 80));
                     }

@@ -1,0 +1,20 @@
+{
+  "recorded_date": "2026-10-05",
+  "execution_mode": "NOT EXECUTED",
+  "exercise_id": null,
+  "lab_id": null,
+  "status": "not_executed",
+  "clean_state_verified": false,
+  "baseline": null,
+  "pre_reset": null,
+  "post_reset": null,
+  "differences": [
+    {
+      "kind": "docker_engine_unavailable",
+      "detail": "docker info could not connect to npipe:////./pipe/dockerDesktopLinuxEngine"
+    }
+  ],
+  "residual_artifacts": [],
+  "health_checks": {},
+  "error": "No real Docker reset was run. The previous empty snapshot is not verification evidence."
+}

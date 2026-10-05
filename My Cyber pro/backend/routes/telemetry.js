@@ -6,12 +6,67 @@
  */
 
 const express = require('express');
+const crypto = require('crypto');
+const net = require('net');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
 
-const VALID_SOURCES = ['ids', 'plc', 'scada', 'student', 'system', 'collector', 'ews'];
 const VALID_SEVERITIES = ['info', 'low', 'medium', 'high', 'critical'];
+const STUDENT_EVENT_TYPES = new Set([
+    'host_identified', 'log_analysis_submitted', 'containment_action'
+]);
+const CONTAINER_EVENT_TYPES = new Set([
+    'modbus_anomaly', 'port_scan_detected', 'connection_flood', 'unknown_protocol',
+    'auth_failure', 'plc_command_rejected', 'unauthorized_access', 'suspicious_traffic'
+]);
+const CONTAINER_SOURCES = new Set(['ids', 'plc', 'scada', 'collector', 'ews']);
+const ALLOWED_EVENT_TYPES = new Map([
+    ['student', STUDENT_EVENT_TYPES],
+    ...[...CONTAINER_SOURCES].map(source => [source, CONTAINER_EVENT_TYPES])
+]);
+const REQUEST_FIELDS = new Set([
+    'exercise_id', 'scenario_id', 'source', 'event_type', 'severity', 'data'
+]);
+
+function hasValidContainerSecret(candidate) {
+    const configured = process.env.CONTAINER_SECRET;
+    if (typeof candidate !== 'string' || typeof configured !== 'string' || !configured) return false;
+    const candidateBuffer = Buffer.from(candidate);
+    const configuredBuffer = Buffer.from(configured);
+    return candidateBuffer.length === configuredBuffer.length &&
+        crypto.timingSafeEqual(candidateBuffer, configuredBuffer);
+}
+
+function canonicalJson(value) {
+    if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+    if (value && typeof value === 'object') {
+        return `{${Object.keys(value).sort().map(key =>
+            `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
+    }
+    return JSON.stringify(value);
+}
+
+function validEventPayload(source, eventType, severity, data) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+
+    if (eventType === 'modbus_anomaly') {
+        return data.dst_port === 502 && ['medium', 'high', 'critical'].includes(severity);
+    }
+
+    if (source !== 'student') return true;
+    if (eventType === 'host_identified') {
+        return typeof data.identified_ip === 'string' && net.isIPv4(data.identified_ip);
+    }
+    if (eventType === 'log_analysis_submitted') {
+        return typeof data.analysis_text === 'string' && data.analysis_text.trim().length > 0;
+    }
+    if (eventType === 'containment_action') {
+        return ['block_ip', 'isolate_container', 'firewall_rule', 'disconnect_network']
+            .includes(data.action_type);
+    }
+    return false;
+}
 
 /**
  * POST /api/telemetry/event
@@ -22,74 +77,130 @@ const VALID_SEVERITIES = ['info', 'low', 'medium', 'high', 'critical'];
 router.post('/event', async (req, res) => {
     try {
         const db = req.app.locals.db;
-        const {
-            exercise_id,
-            scenario_id,
-            source,
-            event_type,
-            severity = 'info',
-            data = {}
-        } = req.body;
+        const body = req.body;
 
-        // Validate required fields
-        if (!source || !event_type) {
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            return res.status(400).json({ success: false, message: 'A JSON object is required' });
+        }
+
+        if (Object.keys(body).some(field => !REQUEST_FIELDS.has(field))) {
             return res.status(400).json({
-                success: false,
-                message: 'source and event_type are required'
+                success: false, message: 'Unsupported telemetry fields are not accepted'
             });
         }
 
-        if (!VALID_SOURCES.includes(source)) {
+        const {
+            exercise_id: exerciseId,
+            scenario_id: scenarioId,
+            source,
+            event_type: eventType,
+            severity = 'info',
+            data
+        } = body;
+
+        if (typeof exerciseId !== 'string' || !exerciseId.trim() ||
+            typeof source !== 'string' || typeof eventType !== 'string' || !eventType.trim()) {
             return res.status(400).json({
-                success: false,
-                message: `Invalid source. Must be one of: ${VALID_SOURCES.join(', ')}`
+                success: false, message: 'exercise_id, source, and event_type are required'
+            });
+        }
+
+        const allowedEventTypes = ALLOWED_EVENT_TYPES.get(source);
+        if (!allowedEventTypes) {
+            return res.status(400).json({ success: false, message: 'Invalid telemetry source' });
+        }
+
+        if (!allowedEventTypes.has(eventType)) {
+            return res.status(400).json({
+                success: false, message: 'Event type is not permitted for this source'
             });
         }
 
         if (!VALID_SEVERITIES.includes(severity)) {
+            return res.status(400).json({ success: false, message: 'Invalid telemetry severity' });
+        }
+
+        const sessionUserId = req.session && req.session.userId;
+        const isStudentSession = Number.isSafeInteger(Number(sessionUserId)) && Number(sessionUserId) > 0;
+        const isContainerAuth = CONTAINER_SOURCES.has(source) &&
+            hasValidContainerSecret(req.headers['x-cyberpro-secret']);
+
+        if (source === 'student' && !isStudentSession) {
+            return res.status(401).json({
+                success: false, message: 'Student evidence requires an authenticated session'
+            });
+        }
+
+        if (source !== 'student' && !isContainerAuth) {
+            return res.status(401).json({
+                success: false, message: 'Container telemetry requires the configured secret'
+            });
+        }
+
+        if (scenarioId !== undefined &&
+            (typeof scenarioId !== 'string' || !scenarioId.trim())) {
+            return res.status(400).json({ success: false, message: 'Invalid scenario_id' });
+        }
+
+        const exercise = await new Promise((resolve, reject) => {
+            db.db.get('SELECT id, scenario_id, user_id, status FROM exercise_sessions WHERE id = ?',
+                [exerciseId], (error, row) => error ? reject(error) : resolve(row));
+        });
+
+        if (!exercise) {
+            return res.status(404).json({ success: false, message: 'Exercise not found' });
+        }
+
+        if (exercise.status !== 'active') {
+            return res.status(409).json({ success: false, message: 'Exercise is not active' });
+        }
+
+        if (scenarioId !== undefined && scenarioId !== exercise.scenario_id) {
             return res.status(400).json({
-                success: false,
-                message: `Invalid severity. Must be one of: ${VALID_SEVERITIES.join(', ')}`
+                success: false, message: 'scenario_id does not match the exercise'
             });
         }
 
-        // Container auth: check shared secret header (for IDS/collector)
-        const containerSecret = req.headers['x-cyberpro-secret'];
-        const isContainerAuth = containerSecret &&
-            containerSecret === process.env.CONTAINER_SECRET;
-
-        // Student auth: check session
-        const isStudentAuth = req.session && req.session.userId;
-
-        // student-sourced events require session auth
-        if (source === 'student' && !isStudentAuth) {
-            return res.status(401).json({
-                success: false,
-                message: 'Student events require authentication'
+        if (source === 'student' && Number(exercise.user_id) !== Number(sessionUserId)) {
+            return res.status(403).json({
+                success: false, message: 'Evidence can only be submitted for your own exercise'
             });
         }
 
-        // Container events require either container secret or session
-        if (source !== 'student' && !isContainerAuth && !isStudentAuth) {
-            return res.status(401).json({
-                success: false,
-                message: 'Authentication required'
+        if (!validEventPayload(source, eventType, severity, data)) {
+            return res.status(400).json({
+                success: false, message: 'Telemetry payload is invalid for this event type'
             });
         }
 
         const eventId = uuidv4();
-        const userId = req.session ? req.session.userId : null;
-
-        await new Promise((resolve, reject) => {
+        const eventUserId = source === 'student' ? exercise.user_id : null;
+        const serializedData = canonicalJson(data);
+        const inserted = await new Promise((resolve, reject) => {
             db.db.run(
                 `INSERT INTO telemetry_events
                     (id, exercise_id, scenario_id, user_id, source, event_type, severity, data)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [eventId, exercise_id || null, scenario_id || null, userId,
-                 source, event_type, severity, JSON.stringify(data)],
-                (err) => err ? reject(err) : resolve()
+                 SELECT ?, ?, ?, ?, ?, ?, ?, ?
+                 WHERE NOT EXISTS (
+                    SELECT 1 FROM telemetry_events
+                    WHERE exercise_id = ? AND source = ? AND event_type = ?
+                      AND severity = ? AND data = ?
+                 )`,
+                [eventId, exercise.id, exercise.scenario_id, eventUserId,
+                 source, eventType, severity, serializedData,
+                 exercise.id, source, eventType, severity, serializedData],
+                function (error) {
+                    if (error) return reject(error);
+                    resolve(this.changes === 1);
+                }
             );
         });
+
+        if (!inserted) {
+            return res.status(409).json({
+                success: false, message: 'Duplicate or replayed telemetry evidence'
+            });
+        }
 
         res.status(201).json({
             success: true,
