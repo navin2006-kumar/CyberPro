@@ -4,19 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - CyberPro</title>
+    <meta name="color-scheme" content="light">
+    <title>Evidence Dashboard - CyberPro</title>
     <link rel="stylesheet" href="/css/dashboard.css">
 </head>
 
 <body>
-    <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <h1>🔬 CyberPro</h1>
+                <a href="/dashboard.html" aria-label="CyberPro evidence dashboard">CYBERPRO <span>RESEARCH</span></a>
             </div>
             <div class="nav-links">
-                <a href="/dashboard.html" class="active">Dashboard</a>
+                <a href="/dashboard.html" class="active">Evidence</a>
                 <a href="/labs.html">Labs</a>
                 <a href="/profile.html">Profile</a>
                 <button id="logoutBtn" class="btn-logout">Logout</button>
@@ -24,108 +24,139 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <div class="container">
-        <!-- Welcome Section -->
-        <header class="welcome-section">
-            <div class="welcome-text">
-                <h1>Welcome back, <span id="username">User</span>! 👋</h1>
-                <p>Continue your cybersecurity learning journey</p>
-            </div>
-            <div class="quick-action">
-                <a href="/labs.html" class="btn-primary">Browse Labs →</a>
+    <main class="container">
+        <header class="page-heading">
+            <div>
+                <p class="eyebrow">RESEARCH RECORD / <span id="username">ACCOUNT</span></p>
+                <h1>Exercise evidence</h1>
             </div>
         </header>
 
-        <!-- Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">🎯</div>
-                <div class="stat-content">
-                    <div class="stat-value" id="labsCompleted">0</div>
-                    <div class="stat-label">Labs Completed</div>
-                </div>
-            </div>
+        <form id="exercise-form" class="exercise-picker">
+            <label for="exercise-id">Exercise ID</label>
+            <input id="exercise-id" name="exercise" autocomplete="off" spellcheck="false"
+                placeholder="Enter an exercise ID" required>
+            <button id="load-exercise" type="submit">Load record</button>
+            <span id="load-status" role="status" aria-live="polite">No exercise loaded</span>
+        </form>
 
-            <div class="stat-card">
-                <div class="stat-icon">⏱️</div>
-                <div class="stat-content">
-                    <div class="stat-value" id="timeSpent">0h</div>
-                    <div class="stat-label">Time Spent</div>
-                </div>
-            </div>
+        <div id="dashboard-error" class="dashboard-error" role="alert" hidden></div>
 
-            <div class="stat-card">
-                <div class="stat-icon">🔥</div>
-                <div class="stat-content">
-                    <div class="stat-value" id="currentStreak">0</div>
-                    <div class="stat-label">Day Streak</div>
-                </div>
+        <section class="record-heading" aria-labelledby="scenario-name">
+            <div class="scenario-mark" aria-hidden="true">OT<br>01</div>
+            <div class="record-title">
+                <p class="eyebrow">SCENARIO <span id="scenario-id">—</span></p>
+                <h2 id="scenario-name">—</h2>
             </div>
+            <div class="record-id">
+                <span>EXERCISE</span>
+                <code id="record-exercise-id">—</code>
+            </div>
+            <div class="record-id">
+                <span>SESSION STATUS</span>
+                <strong id="exercise-status">—</strong>
+            </div>
+        </section>
 
-            <div class="stat-card">
-                <div class="stat-icon">⭐</div>
-                <div class="stat-content">
-                    <div class="stat-value" id="skillLevel">Beginner</div>
-                    <div class="stat-label">Skill Level</div>
+        <section class="score-section" aria-labelledby="score-heading">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">ASSESSMENT</p>
+                    <h2 id="score-heading">Score trace</h2>
                 </div>
+                <strong id="final-result" class="final-result">—</strong>
             </div>
+            <dl class="score-grid">
+                <div><dt>Score</dt><dd id="score-total">—</dd></div>
+                <div><dt>Maximum score</dt><dd id="score-maximum">—</dd></div>
+                <div><dt>Pass threshold</dt><dd id="score-threshold">—</dd></div>
+                <div><dt>Required objectives</dt><dd id="required-objectives">—</dd></div>
+                <div><dt>Objectives passed</dt><dd id="objectives-passed">—</dd></div>
+            </dl>
+        </section>
+
+        <section class="objectives-section" aria-labelledby="objectives-heading">
+            <div class="section-heading compact-heading">
+                <div>
+                    <p class="eyebrow">EVIDENCE CHAIN</p>
+                    <h2 id="objectives-heading">Objectives</h2>
+                </div>
+                <span id="objective-count" class="muted-value">—</span>
+            </div>
+            <div id="objective-list" class="objective-list" aria-live="polite"></div>
+        </section>
+
+        <section class="evidence-section" aria-labelledby="evidence-heading">
+            <div class="section-heading compact-heading">
+                <div>
+                    <p class="eyebrow">SELECTED OBJECTIVE</p>
+                    <h2 id="evidence-heading">Evidence events</h2>
+                </div>
+                <span id="selected-objective" class="selection-label">—</span>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Event ID</th>
+                            <th>Event type</th>
+                            <th>Source</th>
+                            <th>Timestamp</th>
+                            <th>Relevant fields</th>
+                            <th>Validation</th>
+                        </tr>
+                    </thead>
+                    <tbody id="evidence-rows">
+                        <tr><td colspan="6" class="empty-row">Load an exercise to inspect evidence.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="lower-grid">
+            <section class="timeline-section" aria-labelledby="timeline-heading">
+                <div class="section-heading compact-heading">
+                    <div>
+                        <p class="eyebrow">EVENT ORDER</p>
+                        <h2 id="timeline-heading">Timeline</h2>
+                    </div>
+                    <span id="timeline-count" class="muted-value">—</span>
+                </div>
+                <ol id="timeline-list" class="timeline-list">
+                    <li class="empty-row">No timeline loaded.</li>
+                </ol>
+            </section>
+
+            <section class="reset-section" aria-labelledby="reset-heading">
+                <div class="section-heading compact-heading">
+                    <div>
+                        <p class="eyebrow">ENVIRONMENT</p>
+                        <h2 id="reset-heading">Reset verification</h2>
+                    </div>
+                    <strong id="reset-result" class="reset-result">—</strong>
+                </div>
+                <dl class="reset-meta">
+                    <div><dt>Reset requested</dt><dd id="reset-requested">—</dd></div>
+                    <div><dt>Reset status</dt><dd id="reset-status">—</dd></div>
+                    <div><dt>Clean state verified</dt><dd id="reset-clean">—</dd></div>
+                    <div><dt>Failure reason</dt><dd id="reset-failure">—</dd></div>
+                </dl>
+                <div class="reset-detail-grid">
+                    <div>
+                        <h3>Health checks</h3>
+                        <ul id="health-checks" class="data-list"><li class="empty-row">No reset record.</li></ul>
+                    </div>
+                    <div>
+                        <h3>Residue verification</h3>
+                        <ul id="residue-checks" class="data-list"><li class="empty-row">No reset record.</li></ul>
+                    </div>
+                </div>
+            </section>
         </div>
+    </main>
 
-        <!-- Main Grid -->
-        <div class="dashboard-grid">
-            <!-- Recent Activity -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>📊 Recent Activity</h2>
-                </div>
-                <div class="card-body">
-                    <div id="activityList" class="activity-list">
-                        <!-- Activity items will be loaded here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Access Labs -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>🚀 Quick Access</h2>
-                    <a href="/labs.html" class="view-all">View All →</a>
-                </div>
-                <div class="card-body">
-                    <div id="quickAccessLabs" class="quick-labs">
-                        <!-- Quick access labs will be loaded here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Progress Chart -->
-            <div class="card full-width">
-                <div class="card-header">
-                    <h2>📈 Your Progress</h2>
-                </div>
-                <div class="card-body">
-                    <div class="progress-overview">
-                        <div class="progress-item">
-                            <div class="progress-label">
-                                <span>Overall Completion</span>
-                                <span id="overallProgress">0%</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="overallProgressBar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Chatbot Widget -->
-    <link rel="stylesheet" href="/css/chatbot-widget.css">
-    
+    <script src="/js/evidence-dashboard-model.js"></script>
     <script src="/js/dashboard.js"></script>
-    <script src="/js/chatbot-widget.js"></script>
 </body>
 
 </html>

@@ -265,10 +265,14 @@ router.get('/events/:exerciseId', requireAuth, async (req, res) => {
             success: true,
             exercise_id: exerciseId,
             count: events.length,
-            events: events.map(e => ({
-                ...e,
-                data: e.data ? JSON.parse(e.data) : {}
-            }))
+            events: events.map(event => {
+                if (!event.data) return { ...event, data: {} };
+                try {
+                    return { ...event, data: JSON.parse(event.data) };
+                } catch {
+                    return { ...event, data: { raw: event.data, parse_error: true } };
+                }
+            })
         });
 
     } catch (error) {

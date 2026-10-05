@@ -12,6 +12,7 @@ const scenarioDefinition = require('../../scenarios/PLC-001/scenario.json');
 
 const telemetryRoutes = require('../../backend/routes/telemetry');
 const reportRoutes = require('../../backend/routes/reports');
+const scenarioRoutes = require('../../backend/routes/scenarios');
 
 const CONTAINER_SECRET = 'security-suite-container-secret';
 let passed = 0;
@@ -98,6 +99,18 @@ function createDatabase() {
                         score_trace TEXT,
                         scored_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     )`);
+                        await runSql(db, `CREATE TABLE reset_records (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            exercise_id TEXT,
+                            lab_id INTEGER,
+                            initiated_by INTEGER,
+                            start_time TEXT,
+                            end_time TEXT,
+                            status TEXT,
+                            health_check_result TEXT,
+                            clean_state_verified INTEGER,
+                            failure_reason TEXT
+                        )`);
 
                     await runSql(db,
                         'INSERT INTO scenarios (id, success_conditions) VALUES (?, ?)',
@@ -164,6 +177,7 @@ async function run() {
     app.locals.db = { db };
     app.use('/api/telemetry', telemetryRoutes);
     app.use('/api/reports', reportRoutes);
+    app.use('/api', scenarioRoutes);
     app.use((error, req, res, next) => {
         res.status(error.status || 500).json({ success: false, message: error.message });
     });
@@ -182,7 +196,8 @@ async function run() {
         if (role) headers['x-test-role'] = role;
         if (secret) headers['x-cyberpro-secret'] = secret;
         const response = await fetch(`${baseUrl}${path}`, {
-            method: path.includes('/score') || path.endsWith('/replay') ? 'GET' : 'POST',
+            method: path.includes('/score') || path.endsWith('/replay') || path.includes('/events/') ||
+                path.startsWith('/api/exercises/') ? 'GET' : 'POST',
             headers,
             body: rawBody !== undefined ? rawBody : body === undefined ? undefined : JSON.stringify(body)
         });
@@ -343,6 +358,36 @@ async function run() {
     await test('non-owner cannot request another user replay', 'REJECT', async () => {
         const response = await request('/api/reports/exercise-alice/replay', { userId: 2 });
         assert.strictEqual(response.status, 403);
+    });
+
+    await test('malformed retained telemetry is returned as raw parse-error data', 'ACCEPT', async () => {
+        await runSql(db, `INSERT INTO telemetry_events
+            (id, exercise_id, scenario_id, user_id, source, event_type, severity, data)
+            VALUES ('malformed-dashboard-event', 'exercise-alice', 'PLC-001', 1,
+                    'student', 'host_identified', 'info', '{invalid-json')`);
+        const response = await request('/api/telemetry/events/exercise-alice', { userId: 1 });
+        assert.strictEqual(response.status, 200);
+        const event = response.json.events.find(item => item.id === 'malformed-dashboard-event');
+        assert.strictEqual(event.data.parse_error, true);
+        assert.strictEqual(event.data.raw, '{invalid-json');
+    });
+
+    await test('exercise detail exposes stored failed reset health and residue result', 'ACCEPT', async () => {
+        await runSql(db, `INSERT INTO reset_records
+            (exercise_id, lab_id, initiated_by, start_time, status, health_check_result,
+             clean_state_verified, failure_reason)
+            VALUES ('exercise-alice', 1, 1, '2026-10-05T10:00:00.000Z', 'partial', ?, 0, 'probe remained')`,
+            [JSON.stringify({
+                health_checks: { collector: { status: 'unhealthy', actual_status: 503 } },
+                residual_artifacts: [{ path: '/tmp/probe.txt' }]
+            })]);
+        const response = await request('/api/exercises/exercise-alice', { userId: 1 });
+        assert.strictEqual(response.status, 200);
+        const reset = response.json.exercise.reset_record;
+        assert.strictEqual(reset.status, 'partial');
+        assert.strictEqual(reset.clean_state_verified, 0);
+        assert.strictEqual(reset.health_check_result.health_checks.collector.status, 'unhealthy');
+        assert.strictEqual(reset.health_check_result.residual_artifacts[0].path, '/tmp/probe.txt');
     });
 
     await test('cross-user evidence already present in storage does not count', 'REJECT', async () => {

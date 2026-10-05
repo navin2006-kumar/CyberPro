@@ -23,6 +23,7 @@ The CyberPro testing strategy prioritizes **end-to-end reliability, mathematical
 | **Objective Engine** | `tests/unit/objectiveEngine.test.js` | `ObjectiveEngine` rule evaluation against scoped telemetry | 14 tests covering all PLC-001 objectives, ownership/scope spoofing, invalid payloads/types, configured checks, validation details, and evidence IDs |
 | **Scoring Engine** | `tests/unit/scoringEngine.test.js` | `ScoringEngine` evidence-backed points and configured pass criteria | 11 tests covering score/objective thresholds, evidence gating, trace fields, and duration math |
 | **Score Replay** | `tests/unit/replayEngine.test.js` | Read-only replay from retained telemetry and persisted score traces | 7 synthetic SQLite cases covering exact replay, event mutations/order, invalid evidence, and rule-version changes |
+| **Evidence Dashboard Model** | `tests/unit/evidenceDashboard.test.js` | Backend response mapping for evidence dashboard states | 5 tests for passing, failing, missing evidence, invalid evidence, and failed reset data |
 | **Multi-Exercise Concurrency** | `tests/integration/concurrency.test.js` | Interleaved telemetry, simultaneous/repeated scoring, database reopen and rollback | 7 file-backed SQLite integrity checks across three exercise/user pairs; not a capacity benchmark |
 | **Timeline Engine** | `tests/unit/timelineEngine.test.js` | `TimelineEngine` chronology & description formatting | 5 tests covering event formatting, relative offsets, and severity mapping |
 | **Authentication** | `tests/unit/auth.test.js` | Bcrypt password hashing & credential checking | 5 tests covering hashing, salt uniqueness, and invalid password rejection |
@@ -32,7 +33,7 @@ The CyberPro testing strategy prioritizes **end-to-end reliability, mathematical
 | **Security Matrix** | `tests/security/rbac-enforcement.test.js` | Route privilege boundary defense | 9 tests verifying complete privilege separation |
 | **Evidence Admission** | `tests/security/evidence-admission.test.js` | Telemetry, score and replay ownership boundary | 17 explicit ACCEPT/REJECT tests using real HTTP routes and in-memory SQLite |
 
-**Suite Count**: 11 automated test suites. The test runner does not report a single assertion total.
+**Suite Count**: 12 automated test suites. The test runner does not report a single assertion total.
 
 ### Phase 1 Verification Record (2026-10-05)
 Focused commands executed in the project root:
@@ -80,6 +81,18 @@ The report is [results/concurrency-verification.json](../results/concurrency-ver
 Full-suite command: `npm test`
 Observed result: `Total Suites: 11 | Passed: 11 | Failed: 0`.
 
+### Phase 7 Evidence Dashboard Record (2026-10-05)
+Command executed:
+```bash
+node tests/unit/evidenceDashboard.test.js
+```
+Observed result: `Results: 5 passed, 0 failed`. Fixture cases cover backend payloads for passing, failing, missing evidence, invalid evidence, and a failed reset. API tests additionally verify malformed telemetry and stored reset health/residue responses.
+
+Browser verification used the actual CyberPro server and a separate temporary SQLite database seeded only with synthetic UI fixtures. Pass, fail, missing-evidence, invalid-evidence, and failed-reset records were loaded through the real authenticated APIs. At 1440px the document width was 1425px; at 390px it was 375px, with no horizontal overflow. Screenshots were visually inspected in the browser tool but were not saved into the repository.
+
+Full-suite command: `npm test`
+Observed result: `Total Suites: 12 | Passed: 12 | Failed: 0`.
+
 ### Phase 3 Reset Verification Record (2026-10-05)
 Command executed:
 ```bash
@@ -112,6 +125,7 @@ node tests/unit/auth.test.js
 node tests/unit/rbac.test.js
 node tests/unit/resetEngine.test.js
 node tests/unit/replayEngine.test.js
+node tests/unit/evidenceDashboard.test.js
 
 # Integration tests
 node tests/integration/scenario-flow.test.js

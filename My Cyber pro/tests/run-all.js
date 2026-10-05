@@ -20,6 +20,7 @@ const SUITES = [
     { name: 'Unit: Objective Engine', script: 'tests/unit/objectiveEngine.test.js' },
     { name: 'Unit: Scoring Engine', script: 'tests/unit/scoringEngine.test.js' },
     { name: 'Unit: Score Replay', script: 'tests/unit/replayEngine.test.js' },
+    { name: 'Unit: Evidence Dashboard Model', script: 'tests/unit/evidenceDashboard.test.js' },
     { name: 'Unit: Timeline Engine', script: 'tests/unit/timelineEngine.test.js' },
     { name: 'Unit: Authentication', script: 'tests/unit/auth.test.js' },
     { name: 'Unit: RBAC Middleware', script: 'tests/unit/rbac.test.js' },

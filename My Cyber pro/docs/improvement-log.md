@@ -130,3 +130,28 @@ Total Suites: 11 | Passed: 11 | Failed: 0
 ```
 
 This is the tested local single-process SQLite workload only; it is not evidence of production-scale capacity or behavior across multiple application processes.
+
+## 2026-10-05 — Phase 7: Research Evidence Dashboard
+
+### Implemented and Tested
+
+- Replaced the generic dashboard content with an exercise evidence review showing backend-returned scenario/exercise IDs, objective statuses/points/evidence IDs, score fields, selected-objective event details, chronological timeline, and latest reset/health/residue record.
+- Dashboard data loads through score, timeline, telemetry, scenario, and exercise APIs. Exercise detail now includes the latest reset record; malformed telemetry returns raw data plus `parse_error` for display instead of failing the event-list request.
+- Added five view-model tests for passing, failing, missing-evidence, invalid-evidence, and failed-reset payloads. The API security suite verifies malformed event and persisted reset data responses.
+
+### Verification
+
+```text
+node tests/unit/evidenceDashboard.test.js
+Results: 5 passed, 0 failed
+
+node tests/security/evidence-admission.test.js
+Results: 19 passed, 0 failed
+```
+
+Values are sourced from backend responses; missing values display as unavailable. Browser verification loaded pass, fail, missing-evidence, invalid-evidence, and failed-reset fixtures through the actual server using a temporary SQLite database. At 1440px document width was 1425px; at a 390px mobile viewport it was 375px, with no horizontal overflow. Screenshots were inspected but not saved to the repository. Verification covers UI/API display behavior only, not learner performance.
+
+```text
+npm test
+Total Suites: 12 | Passed: 12 | Failed: 0
+```

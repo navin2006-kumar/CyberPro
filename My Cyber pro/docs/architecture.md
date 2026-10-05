@@ -94,6 +94,9 @@ Guarantees clean state reproducibility between exercises:
 3. Executes HTTP health checks against all core endpoints (`PLC:8080`, `IDS:8084`, `Collector:8085`).
 4. Verifies clean state and records audit log in `reset_records`.
 
+### 3.5 Evidence Dashboard (`public/dashboard.html`)
+The dashboard is a read-oriented evidence review surface. It loads score from `/api/reports/:id/score`, scenario metadata from `/api/scenarios/:id`, timeline from `/api/reports/:id/timeline`, telemetry from `/api/telemetry/events/:id`, and exercise/reset metadata from `/api/exercises/:id`. Objective status, points, evidence IDs, score thresholds, final decision, health checks, and residue details are rendered from those responses; absent values remain visibly absent. Exercise detail includes the latest persisted reset record, and malformed telemetry is returned with raw data and a parse-error marker so invalid evidence remains inspectable. The evidence page omits the unrelated chatbot widget to keep the records unobstructed and avoid requests to a separate chat service.
+
 ---
 
 ## 4. Data Storage Architecture

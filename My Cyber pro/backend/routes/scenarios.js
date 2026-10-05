@@ -215,23 +215,50 @@ router.get('/exercises/:id', requireAuth, async (req, res) => {
             return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
-        // Get objective status
-        const objectiveResults = await new Promise((resolve, reject) => {
-            db.db.all(
-                `SELECT or.*, so.name, so.points, so.required
-                 FROM objective_results or
-                 JOIN scenario_objectives so ON so.id = or.objective_id
-                 WHERE or.exercise_id = ?`,
-                [id],
-                (err, rows) => err ? reject(err) : resolve(rows || [])
-            );
-        });
+        const [objectiveResults, resetRow] = await Promise.all([
+            new Promise((resolve, reject) => {
+                db.db.all(
+                    `SELECT objective_results.*, scenario_objectives.name,
+                            scenario_objectives.points, scenario_objectives.required
+                     FROM objective_results
+                     JOIN scenario_objectives ON scenario_objectives.id = objective_results.objective_id
+                     WHERE objective_results.exercise_id = ?`,
+                    [id],
+                    (err, rows) => err ? reject(err) : resolve(rows || [])
+                );
+            }),
+            new Promise((resolve, reject) => {
+                db.db.get(
+                    `SELECT id, exercise_id, lab_id, initiated_by, start_time, end_time,
+                            status, health_check_result, clean_state_verified, failure_reason
+                     FROM reset_records WHERE exercise_id = ? ORDER BY id DESC LIMIT 1`,
+                    [id],
+                    (err, row) => err ? reject(err) : resolve(row || null)
+                );
+            })
+        ]);
+
+        let resetRecord = resetRow;
+        if (resetRecord?.health_check_result) {
+            try {
+                resetRecord = {
+                    ...resetRecord,
+                    health_check_result: JSON.parse(resetRecord.health_check_result)
+                };
+            } catch {
+                resetRecord = {
+                    ...resetRecord,
+                    health_check_result: { raw: resetRecord.health_check_result, parse_error: true }
+                };
+            }
+        }
 
         res.json({
             success: true,
             exercise: {
                 ...exercise,
-                objective_results: objectiveResults
+                objective_results: objectiveResults,
+                reset_record: resetRecord
             }
         });
     } catch (err) {
