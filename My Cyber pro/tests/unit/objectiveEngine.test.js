@@ -292,6 +292,26 @@ async function test(name, fn) {
         assert.deepStrictEqual(result[0].evidence_event_ids, []);
     });
 
+    await test('OBJ-2 accepts IP with surrounding whitespace', async () => {
+        await expectStatus('PLC-001-OBJ-2', [
+            makeEvent('evt-trimmed-ip', 'student', 'host_identified', { identified_ip: '  10.10.2.10  ' })
+        ], 'pass');
+    });
+
+    await test('Invalid or negative objective points default safely to 0 points', async () => {
+        const customObjectives = [{
+            ...objectives[0],
+            points: -10
+        }];
+        const db = makeDb(exerciseRow, customObjectives, [
+            makeEvent('evt-valid-1', 'ids', 'modbus_anomaly', { dst_port: 502 })
+        ]);
+        const result = await new ObjectiveEngine(db).evaluateAll('ex-001');
+        assert.strictEqual(result[0].status, 'pass');
+        assert.strictEqual(result[0].points, 0);
+        assert.strictEqual(result[0].score, 0);
+    });
+
     // ── Summary ────────────────────────────────────────────────────────────────
     console.log(`\n─────────────────────────────────`);
     console.log(`Results: ${passed} passed, ${failed} failed`);

@@ -514,10 +514,13 @@ async function seedDefaultScenario() {
                 });
                 const labId = lab ? lab.id : 1;
 
+                const successConditionsJson = data.success_conditions
+                    ? JSON.stringify(data.success_conditions)
+                    : null;
                 db.db.run(
-                    `INSERT INTO scenarios (id, name, description, difficulty, time_limit_minutes, lab_id, version)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                    [data.scenario_id, data.name, data.description, data.difficulty, data.time_limit_minutes, labId, data.version || '1.0']
+                    `INSERT INTO scenarios (id, name, description, difficulty, time_limit_minutes, lab_id, version, success_conditions)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [data.scenario_id, data.name, data.description, data.difficulty, data.time_limit_minutes, labId, data.version || '1.0', successConditionsJson]
                 );
 
                 if (Array.isArray(data.objectives)) {
@@ -530,6 +533,17 @@ async function seedDefaultScenario() {
                     });
                 }
                 console.log('✓ Seeded scenario PLC-001 with verifiable objectives');
+            }
+        } else {
+            const scenarioPath = path.join(__dirname, 'scenarios', 'PLC-001', 'scenario.json');
+            if (fs.existsSync(scenarioPath)) {
+                const data = JSON.parse(fs.readFileSync(scenarioPath, 'utf8'));
+                if (data.success_conditions) {
+                    db.db.run(
+                        'UPDATE scenarios SET success_conditions = ? WHERE id = ? AND success_conditions IS NULL',
+                        [JSON.stringify(data.success_conditions), data.scenario_id]
+                    );
+                }
             }
         }
     } catch (e) {

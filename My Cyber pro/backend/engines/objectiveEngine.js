@@ -54,8 +54,11 @@ class ObjectiveEngine {
         const logic = this._parseDetectionLogic(objective.detection_logic);
         const { matchingEvents, validationDetails } = await this._queryMatchingEvents(exercise, logic);
 
+        const validPoints = Number.isSafeInteger(objective.points) && objective.points >= 0
+            ? objective.points
+            : 0;
         const status = matchingEvents.length > 0 ? 'pass' : 'fail';
-        const score = status === 'pass' ? objective.points : 0;
+        const score = status === 'pass' ? validPoints : 0;
         const evidenceIds = matchingEvents.map(event => event.id).sort();
         const evaluationTimestamp = new Date().toISOString();
 
@@ -74,7 +77,7 @@ class ObjectiveEngine {
             objective_id: objective.id,
             name: objective.name,
             required: !!objective.required,
-            points: objective.points,
+            points: validPoints,
             status,
             score,
             evidence_event_ids: evidenceIds,
@@ -209,7 +212,11 @@ class ObjectiveEngine {
             if (Array.isArray(expected)) {
                 if (!expected.includes(actual)) reasons.push(`field_mismatch:${field}`);
             } else {
-                if (actual !== expected) reasons.push(`field_mismatch:${field}`);
+                if (typeof actual === 'string' && typeof expected === 'string') {
+                    if (actual.trim() !== expected.trim()) reasons.push(`field_mismatch:${field}`);
+                } else if (actual !== expected) {
+                    reasons.push(`field_mismatch:${field}`);
+                }
             }
         }
         return reasons;

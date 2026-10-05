@@ -258,6 +258,42 @@ async function run() {
         assert.strictEqual(result.passed, false);
     });
 
+    await test('Inverted or invalid completion timestamps safely result in null completion_time_minutes', async () => {
+        const mockDbInverted = makeMockDb({}, {
+            start_time: '2026-10-05T12:00:00.000Z',
+            end_time: '2026-10-05T11:00:00.000Z'
+        });
+        const mockObjectiveEngine = { evaluateAll: async () => [] };
+        const engineInverted = new ScoringEngine(mockDbInverted, mockObjectiveEngine);
+        const resultInverted = await engineInverted.score('test-inverted');
+        assert.strictEqual(resultInverted.completion_time_minutes, null);
+
+        const mockDbInvalid = makeMockDb({}, {
+            start_time: 'not-a-valid-date',
+            end_time: 'also-invalid'
+        });
+        const engineInvalid = new ScoringEngine(mockDbInvalid, mockObjectiveEngine);
+        const resultInvalid = await engineInvalid.score('test-invalid-time');
+        assert.strictEqual(resultInvalid.completion_time_minutes, null);
+    });
+
+    await test('Scenario success_conditions stored as JSON string in database row are correctly parsed and enforced', async () => {
+        const mockDbString = makeMockDb({
+            success_conditions: JSON.stringify({ min_score: 50, min_objectives_required_passed: 1 })
+        });
+        const mockObjectiveEngine = {
+            evaluateAll: async () => [
+                { objective_id: 'OBJ-1', name: 'A', required: true, status: 'pass', score: 50, points: 50, evidence_event_ids: ['ev-1'] }
+            ]
+        };
+        const engine = new ScoringEngine(mockDbString, mockObjectiveEngine);
+        const result = await engine.score('test-json-string-conditions');
+        assert.strictEqual(result.total_score, 50);
+        assert.strictEqual(result.passed, true);
+        assert.strictEqual(result.pass_threshold, 50);
+        assert.strictEqual(result.minimum_required_objectives, 1);
+    });
+
     console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
     if (failed > 0) process.exit(1);
 }

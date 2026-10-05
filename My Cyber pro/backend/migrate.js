@@ -36,9 +36,11 @@ const MIGRATIONS = [
         time_limit_minutes INTEGER DEFAULT 30,
         lab_id      INTEGER REFERENCES labs(id),
         version     TEXT DEFAULT '1.0',
+        success_conditions TEXT,
         is_active   BOOLEAN DEFAULT 1,
         created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
+    `ALTER TABLE scenarios ADD COLUMN success_conditions TEXT`,
 
     // ─── Table 2: scenario_objectives ────────────────────────────────────────
     `CREATE TABLE IF NOT EXISTS scenario_objectives (

@@ -5,9 +5,12 @@
 ### Implemented
 
 - Objective evidence matching is scoped by `exercise_id`, authoritative exercise `scenario_id`, configured `source` and `event_type`, and event ownership. Student evidence must belong to the exercise owner; non-student evidence with a session `user_id` is rejected.
-- Malformed detection logic and malformed, non-object, missing, or incorrectly typed telemetry payload values fail closed. Minimum text checks require a non-empty string meeting the configured length; enumerated values must match exactly.
+- Malformed detection logic and malformed, non-object, missing, or incorrectly typed telemetry payload values fail closed. Minimum text checks require a non-empty string meeting the configured length; enumerated values must match exactly; string comparisons trim whitespace.
+- Objective points are sanitized (`Number.isSafeInteger` and `>= 0`); invalid points safely default to 0.
 - Objective results persist matching evidence event IDs. Scoring deduplicates IDs and awards configured objective points only for pass results with at least one evidence ID.
-- Overall pass requires both the scenario-configured minimum score and the scenario-configured minimum number of passed required objectives. Configuration is read from a populated `success_conditions` field or the matching scenario manifest; no hardcoded threshold defaults are used.
+- Overall pass requires both the scenario-configured minimum score and the scenario-configured minimum number of passed required objectives. Configuration is read from a populated `success_conditions` database field or the matching scenario manifest; no hardcoded threshold defaults are used.
+- Schema migration and seed logic persist `success_conditions TEXT` into the SQLite `scenarios` table.
+- Completion duration in minutes guards against non-finite or inverted timestamps (`start_time > end_time`), safely defaulting to null.
 - Score responses expose each objective ID, status, points earned/possible, evidence count, and evidence event IDs.
 - The in-memory SQLite lifecycle fixture now mirrors telemetry scenario/owner columns and tests spoofed evidence plus persisted trace IDs.
 
@@ -16,9 +19,10 @@
 Focused commands executed:
 
 ```text
-node tests/unit/objectiveEngine.test.js       Results: 13 passed, 0 failed
-node tests/unit/scoringEngine.test.js         Results: 11 passed, 0 failed
-node tests/integration/scenario-flow.test.js  Full Scenario Lifecycle Integration Test Passed Successfully
+node tests/unit/objectiveEngine.test.js       Results: 16 passed, 0 failed
+node tests/unit/scoringEngine.test.js         Results: 13 passed, 0 failed
+node tests/integration/scenario-flow.test.js  Full Scenario Lifecycle Integration Test Passed Successfully (9 steps)
+npm test                                      Total Suites: 12 | Passed: 12 | Failed: 0
 ```
 
 Full-suite verification will be recorded after `npm test` is run for this phase. The SQLite integration test does not start Docker; live lab telemetry, container resets, and health checks are not verified here.

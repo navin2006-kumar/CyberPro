@@ -116,7 +116,11 @@ class ScoringEngine {
         if (exercise.start_time) {
             const start = new Date(exercise.start_time);
             const end = exercise.end_time ? new Date(exercise.end_time) : new Date();
-            completionMinutes = Math.round((end - start) / 60000);
+            const startMs = start.getTime();
+            const endMs = end.getTime();
+            if (Number.isFinite(startMs) && Number.isFinite(endMs) && endMs >= startMs) {
+                completionMinutes = Math.round((endMs - startMs) / 60000);
+            }
         }
 
         const ruleDefinition = {
