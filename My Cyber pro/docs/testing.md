@@ -23,6 +23,7 @@ The CyberPro testing strategy prioritizes **end-to-end reliability, mathematical
 | **Objective Engine** | `tests/unit/objectiveEngine.test.js` | `ObjectiveEngine` rule evaluation against scoped telemetry | 14 tests covering all PLC-001 objectives, ownership/scope spoofing, invalid payloads/types, configured checks, validation details, and evidence IDs |
 | **Scoring Engine** | `tests/unit/scoringEngine.test.js` | `ScoringEngine` evidence-backed points and configured pass criteria | 11 tests covering score/objective thresholds, evidence gating, trace fields, and duration math |
 | **Score Replay** | `tests/unit/replayEngine.test.js` | Read-only replay from retained telemetry and persisted score traces | 7 synthetic SQLite cases covering exact replay, event mutations/order, invalid evidence, and rule-version changes |
+| **Multi-Exercise Concurrency** | `tests/integration/concurrency.test.js` | Interleaved telemetry, simultaneous/repeated scoring, database reopen and rollback | 7 file-backed SQLite integrity checks across three exercise/user pairs; not a capacity benchmark |
 | **Timeline Engine** | `tests/unit/timelineEngine.test.js` | `TimelineEngine` chronology & description formatting | 5 tests covering event formatting, relative offsets, and severity mapping |
 | **Authentication** | `tests/unit/auth.test.js` | Bcrypt password hashing & credential checking | 5 tests covering hashing, salt uniqueness, and invalid password rejection |
 | **RBAC Middleware** | `tests/unit/rbac.test.js` | `requireAuth` & `requireRole` middleware | 12 tests covering all role permutations and unauthenticated access denial |
@@ -31,7 +32,7 @@ The CyberPro testing strategy prioritizes **end-to-end reliability, mathematical
 | **Security Matrix** | `tests/security/rbac-enforcement.test.js` | Route privilege boundary defense | 9 tests verifying complete privilege separation |
 | **Evidence Admission** | `tests/security/evidence-admission.test.js` | Telemetry, score and replay ownership boundary | 17 explicit ACCEPT/REJECT tests using real HTTP routes and in-memory SQLite |
 
-**Suite Count**: 10 automated test suites. The test runner does not report a single assertion total.
+**Suite Count**: 11 automated test suites. The test runner does not report a single assertion total.
 
 ### Phase 1 Verification Record (2026-10-05)
 Focused commands executed in the project root:
@@ -66,6 +67,18 @@ Observed result: `Results: 7 passed, 0 failed`. The suite writes [results/replay
 
 Full-suite command: `npm test`
 Observed result: `Total Suites: 10 | Passed: 10 | Failed: 0`.
+
+### Phase 6 Multi-Exercise Integrity Record (2026-10-05)
+Command executed:
+```bash
+node tests/integration/concurrency.test.js
+```
+Observed result: `Results: 7 passed, 0 failed`. The suite uses three users and three exercises in one Node process against a temporary file-backed SQLite database. It interleaves six telemetry inserts, runs scoring concurrently and repeatedly, checks duplicate IDs, closes/reopens the database, replays all three scores, and rolls back an intentional foreign-key failure. The recorded scope is the tested workload only, not production-scale capacity.
+
+The report is [results/concurrency-verification.json](../results/concurrency-verification.json).
+
+Full-suite command: `npm test`
+Observed result: `Total Suites: 11 | Passed: 11 | Failed: 0`.
 
 ### Phase 3 Reset Verification Record (2026-10-05)
 Command executed:
@@ -102,6 +115,7 @@ node tests/unit/replayEngine.test.js
 
 # Integration tests
 node tests/integration/scenario-flow.test.js
+node tests/integration/concurrency.test.js
 
 # Security tests
 node tests/security/rbac-enforcement.test.js

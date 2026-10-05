@@ -108,3 +108,25 @@ Total Suites: 10 | Passed: 10 | Failed: 0
 ```
 
 The replay cases include exact match, removed event, changed payload, duplicate event, reordered event timestamps, newly malformed event, and changed scenario rule version. Verification is software/control-plane only and must not be described as learner performance or live-lab verification.
+
+## 2026-10-05 — Phase 6: Multi-Exercise Data Integrity
+
+### Implemented and Tested
+
+- Added `tests/integration/concurrency.test.js` using three unique users, exercise IDs, and per-exercise telemetry against a temporary file-backed SQLite database.
+- Interleaved six telemetry inserts and concurrently scored Exercise A/B/C; each score and evidence list was asserted to contain only its own exercise's events.
+- Repeated scoring concurrently (two calls per exercise) and verified one score row and one objective result per exercise, with no point multiplication.
+- Verified duplicate event primary-key rejection, persistent independent results after database close/reopen, and rollback after a controlled foreign-key insert failure.
+- Generated `results/concurrency-verification.json` with the exact workload, per-case outcomes, and scope disclaimer.
+
+### Verification
+
+```text
+node tests/integration/concurrency.test.js
+Results: 7 passed, 0 failed
+
+npm test
+Total Suites: 11 | Passed: 11 | Failed: 0
+```
+
+This is the tested local single-process SQLite workload only; it is not evidence of production-scale capacity or behavior across multiple application processes.

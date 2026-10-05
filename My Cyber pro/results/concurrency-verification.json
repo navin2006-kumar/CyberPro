@@ -1,0 +1,218 @@
+{
+  "recorded_at": "2026-10-05T16:29:32.254Z",
+  "execution_mode": "FILE_BACKED_SQLITE_INTEGRATION",
+  "production_scale_claim": false,
+  "scope": "tested three concurrent exercises in one Node process against temporary file-backed SQLite",
+  "workload": {
+    "exercises": [
+      {
+        "exercise_id": "exercise-A",
+        "user_id": 11,
+        "user_name": "alice",
+        "scenario_id": "CONCURRENCY-001"
+      },
+      {
+        "exercise_id": "exercise-B",
+        "user_id": 22,
+        "user_name": "bob",
+        "scenario_id": "CONCURRENCY-001"
+      },
+      {
+        "exercise_id": "exercise-C",
+        "user_id": 33,
+        "user_name": "carol",
+        "scenario_id": "CONCURRENCY-001"
+      }
+    ],
+    "simultaneous_exercises": 3,
+    "telemetry_rows_interleaved": 6,
+    "concurrent_score_calls": 3,
+    "repeated_score_calls_per_exercise": 2,
+    "database": "temporary file-backed SQLite; single Node process"
+  },
+  "case_count": 7,
+  "passed": 7,
+  "failed": 0,
+  "cases": [
+    {
+      "name": "Three exercises and users have unique IDs",
+      "status": "PASS",
+      "started_at": "2026-10-05T16:29:32.043Z",
+      "observed_at": "2026-10-05T16:29:32.044Z",
+      "details": {
+        "expected": "3 unique exercise IDs and 3 unique user/session owners"
+      },
+      "observed": {
+        "exercises": [
+          {
+            "id": "exercise-A",
+            "user_id": 11,
+            "scenario_id": "CONCURRENCY-001"
+          },
+          {
+            "id": "exercise-B",
+            "user_id": 22,
+            "scenario_id": "CONCURRENCY-001"
+          },
+          {
+            "id": "exercise-C",
+            "user_id": 33,
+            "scenario_id": "CONCURRENCY-001"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Interleaved simultaneous telemetry remains exercise-scoped",
+      "status": "PASS",
+      "started_at": "2026-10-05T16:29:32.045Z",
+      "observed_at": "2026-10-05T16:29:32.082Z",
+      "details": {
+        "expected": "6 concurrent telemetry inserts; each event retains its unique exercise and user owner"
+      },
+      "observed": {
+        "inserted_event_ids": [
+          "event-exercise-A-1",
+          "event-exercise-A-2",
+          "event-exercise-B-1",
+          "event-exercise-B-2",
+          "event-exercise-C-1",
+          "event-exercise-C-2"
+        ],
+        "total_rows": 6
+      }
+    },
+    {
+      "name": "Concurrent objective scoring never consumes another exercise evidence",
+      "status": "PASS",
+      "started_at": "2026-10-05T16:29:32.083Z",
+      "observed_at": "2026-10-05T16:29:32.135Z",
+      "details": {
+        "expected": "A, B, and C each score 10 with only their own two evidence IDs"
+      },
+      "observed": {
+        "scores": [
+          {
+            "exercise_id": "exercise-A",
+            "total_score": 10,
+            "evidence_event_ids": [
+              "event-exercise-A-1",
+              "event-exercise-A-2"
+            ]
+          },
+          {
+            "exercise_id": "exercise-B",
+            "total_score": 10,
+            "evidence_event_ids": [
+              "event-exercise-B-1",
+              "event-exercise-B-2"
+            ]
+          },
+          {
+            "exercise_id": "exercise-C",
+            "total_score": 10,
+            "evidence_event_ids": [
+              "event-exercise-C-1",
+              "event-exercise-C-2"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Duplicate event IDs are rejected without multiplying score",
+      "status": "PASS",
+      "started_at": "2026-10-05T16:29:32.135Z",
+      "observed_at": "2026-10-05T16:29:32.151Z",
+      "details": {
+        "expected": "primary-key duplicate rejected; per-objective points remain 10 despite two evidence rows"
+      },
+      "observed": {
+        "duplicate_rejected": true,
+        "event_rows": 6,
+        "score": 10
+      }
+    },
+    {
+      "name": "Repeated simultaneous scoring is idempotent per exercise",
+      "status": "PASS",
+      "started_at": "2026-10-05T16:29:32.151Z",
+      "observed_at": "2026-10-05T16:29:32.230Z",
+      "details": {
+        "expected": "two concurrent scores per exercise still leave one score row and one objective row each"
+      },
+      "observed": {
+        "score_rows": [
+          {
+            "exercise_id": "exercise-A",
+            "total_score": 10
+          },
+          {
+            "exercise_id": "exercise-B",
+            "total_score": 10
+          },
+          {
+            "exercise_id": "exercise-C",
+            "total_score": 10
+          }
+        ],
+        "objective_rows": [
+          {
+            "exercise_id": "exercise-A",
+            "objective_id": "CONCURRENCY-OBJ-1"
+          },
+          {
+            "exercise_id": "exercise-B",
+            "objective_id": "CONCURRENCY-OBJ-1"
+          },
+          {
+            "exercise_id": "exercise-C",
+            "objective_id": "CONCURRENCY-OBJ-1"
+          }
+        ],
+        "repeated_calls": 6
+      }
+    },
+    {
+      "name": "Database close/reopen preserves isolated scores and replay traces",
+      "status": "PASS",
+      "started_at": "2026-10-05T16:29:32.230Z",
+      "observed_at": "2026-10-05T16:29:32.252Z",
+      "details": {
+        "expected": "reopened file DB retains 3 score/objective records; each replay remains consistent"
+      },
+      "observed": {
+        "reopened": true,
+        "score_rows": [
+          {
+            "exercise_id": "exercise-A",
+            "total_score": 10
+          },
+          {
+            "exercise_id": "exercise-B",
+            "total_score": 10
+          },
+          {
+            "exercise_id": "exercise-C",
+            "total_score": 10
+          }
+        ],
+        "replay_consistent": true
+      }
+    },
+    {
+      "name": "Foreign-key transaction failure rolls back safely",
+      "status": "PASS",
+      "started_at": "2026-10-05T16:29:32.252Z",
+      "observed_at": "2026-10-05T16:29:32.254Z",
+      "details": {
+        "expected": "invalid exercise telemetry insert fails within transaction and rollback leaves row count unchanged"
+      },
+      "observed": {
+        "transaction_rejected": true,
+        "rows_before": 6,
+        "rows_after": 6
+      }
+    }
+  ]
+}

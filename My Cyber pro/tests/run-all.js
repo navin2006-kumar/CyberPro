@@ -25,6 +25,7 @@ const SUITES = [
     { name: 'Unit: RBAC Middleware', script: 'tests/unit/rbac.test.js' },
     { name: 'Unit: Reset Engine', script: 'tests/unit/resetEngine.test.js' },
     { name: 'Integration: Scenario Lifecycle', script: 'tests/integration/scenario-flow.test.js' },
+    { name: 'Integration: Multi-Exercise Concurrency', script: 'tests/integration/concurrency.test.js' },
     { name: 'Security: RBAC Enforcement', script: 'tests/security/rbac-enforcement.test.js' },
     { name: 'Security: Evidence Admission', script: 'tests/security/evidence-admission.test.js' }
 ];

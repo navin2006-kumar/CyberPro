@@ -103,3 +103,9 @@ An original score stores the objective validation trace, evaluation timestamps, 
 When retained evidence and rule fingerprint are unchanged, objective statuses, points, evidence IDs, thresholds, and final decision should match. Event timestamps may be reordered without changing the result; timestamps for the new evaluation are recorded separately and excluded from the deterministic comparison. Missing, changed, duplicated, or newly invalid events, and changed rule versions are reported as discrepancies.
 
 Verification on 2026-10-05: `node tests/unit/replayEngine.test.js` reported **7 passed, 0 failed**; `npm test` reported **10 suites passed, 0 failed**. The replay suite uses synthetic retained telemetry and in-memory SQLite. This is software/control-plane replay verification only, not learner-performance measurement or an end-to-end lab replay.
+
+## 6. Multi-Exercise Data Integrity
+
+`tests/integration/concurrency.test.js` creates three users and three unique completed exercise sessions on a temporary file-backed SQLite database. It interleaves six telemetry inserts across A/B/C, concurrently scores each exercise, repeats two scoring calls per exercise, rejects a duplicate event primary key, closes and reopens the database, replays each persisted score, and checks rollback after an invalid foreign-key telemetry insert.
+
+On 2026-10-05 this specific workload reported **7 passed, 0 failed** and produced [results/concurrency-verification.json](../results/concurrency-verification.json). This tests data isolation/idempotency in one Node process and a local SQLite file only. It does not measure production-scale load, multiple application processes, network databases, or maximum concurrency capacity.
