@@ -2,7 +2,8 @@ name: oilsprings
 
 # CyberPro Cyber Range — OilSprings Industrial Lab
 # Scenario: PLC Attack Detection (PLC-001)
-# All networks are isolated bridge networks with no external internet access.
+# Network declarations describe intended segmentation and port exposure only.
+# Runtime containment remains a verification target; live network behavior has not been proven in this workspace.
 # Resource limits enforced on all containers to prevent host exhaustion.
 
 networks:
@@ -15,14 +16,14 @@ networks:
 
   l3_scada_network:
     driver: bridge
-    internal: true    # SCADA layer — fully isolated, no host internet
+    internal: true    # SCADA layer — internal-only declaration; runtime containment not yet validated
     ipam:
       config:
         - subnet: 10.10.3.0/24
 
   l3_security_network:
     driver: bridge
-    internal: true    # Security monitoring — fully isolated
+    internal: true    # Security monitoring — internal-only declaration; runtime containment not yet validated
     ipam:
       config:
         - subnet: 10.10.4.0/24

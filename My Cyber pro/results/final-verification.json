@@ -1,0 +1,131 @@
+{
+  "project": "CyberPro / My Cyber pro",
+  "generated_at": "2026-10-05T00:00:00Z",
+  "verification_scope": [
+    "dependency_install",
+    "npm_test",
+    "individual_test_files",
+    "security_and_evidence_checks",
+    "docker_availability_check",
+    "docker_startup_attempt",
+    "reset_and_residue_assessment",
+    "network_containment_assessment",
+    "documentation_consistency_check"
+  ],
+  "environment": {
+    "node_version": "v24.20.0",
+    "npm_version": "11.4.1",
+    "package_lock_state": "present",
+    "dependency_install_command": "npm install",
+    "dependency_install_status": "pass",
+    "npm_audit_summary": "31 vulnerabilities reported by npm audit (2 low, 8 moderate, 19 high, 2 critical); not resolved in this verification pass"
+  },
+  "test_results": {
+    "npm_test": {
+      "status": "pass",
+      "command": "npm test",
+      "observed_output": "Total Suites: 12 | Passed: 12 | Failed: 0",
+      "suite_count": 12,
+      "passed": 12,
+      "failed": 0
+    },
+    "individual_tests": [
+      { "name": "Objective Engine", "command": "node tests/unit/objectiveEngine.test.js", "status": "pass", "evidence": "14 passed, 0 failed" },
+      { "name": "Scoring Engine", "command": "node tests/unit/scoringEngine.test.js", "status": "pass", "evidence": "11 passed, 0 failed" },
+      { "name": "Score Replay", "command": "node tests/unit/replayEngine.test.js", "status": "pass", "evidence": "7 passed, 0 failed" },
+      { "name": "Evidence Dashboard Model", "command": "node tests/unit/evidenceDashboard.test.js", "status": "pass", "evidence": "5 passed, 0 failed" },
+      { "name": "Timeline Engine", "command": "node tests/unit/timelineEngine.test.js", "status": "pass", "evidence": "5 passed, 0 failed" },
+      { "name": "Authentication", "command": "node tests/unit/auth.test.js", "status": "pass", "evidence": "5 passed, 0 failed" },
+      { "name": "RBAC Middleware", "command": "node tests/unit/rbac.test.js", "status": "pass", "evidence": "12 passed, 0 failed" },
+      { "name": "Reset Engine", "command": "node tests/unit/resetEngine.test.js", "status": "pass", "evidence": "6 passed, 0 failed" },
+      { "name": "Scenario Lifecycle", "command": "node tests/integration/scenario-flow.test.js", "status": "pass", "evidence": "Full scenario lifecycle integration test passed successfully" },
+      { "name": "Multi-Exercise Concurrency", "command": "node tests/integration/concurrency.test.js", "status": "pass", "evidence": "7 passed, 0 failed" },
+      { "name": "RBAC Enforcement", "command": "node tests/security/rbac-enforcement.test.js", "status": "pass", "evidence": "9 passed, 0 failed" },
+      { "name": "Evidence Admission", "command": "node tests/security/evidence-admission.test.js", "status": "pass", "evidence": "accept/reject checks passed" }
+    ],
+    "evidence_validation": {
+      "status": "pass",
+      "scope": "application-level evidence admission and telemetry integrity checks",
+      "evidence": "Evidence admission tests passed and rejected spoofed, duplicate, malformed, cross-user, and invalid payloads"
+    },
+    "scoring": {
+      "status": "pass",
+      "evidence": "Scoring engine and objective gate checks passed in unit tests"
+    },
+    "replay": {
+      "status": "pass",
+      "evidence": "Replay engine detected changed evidence and rule-version drift while passing all 7 replay tests"
+    },
+    "persistence": {
+      "status": "pass",
+      "evidence": "Scenario lifecycle and concurrency tests verified SQLite persistence, rollback, and replay integrity"
+    },
+    "concurrency": {
+      "status": "pass",
+      "evidence": "7/7 concurrency tests passed with temporary file-backed SQLite"
+    },
+    "dashboard": {
+      "status": "pass",
+      "evidence": "Evidence dashboard model tests passed 5/5 across pass, fail, missing, invalid, and failed-reset payload states"
+    }
+  },
+  "docker_verification": {
+    "docker_available": true,
+    "docker_version": "29.8.0",
+    "startup": {
+      "status": "failed",
+      "command": "docker compose up -d --remove-orphans",
+      "evidence": "Build failed: COPY ./appdata/openplc.db /workdir/webserver/openplc.db: not found",
+      "notes": "No live scenario health checks, reset, residue detection, or containment tests were executed after startup failure"
+    },
+    "health_checks": {
+      "status": "not_executed",
+      "reason": "Docker services did not start successfully"
+    },
+    "real_reset": {
+      "status": "not_executed",
+      "reason": "Startup failed before a live reset could be evaluated"
+    },
+    "residue_detection": {
+      "status": "not_executed",
+      "reason": "No live running lab was available to inspect"
+    },
+    "network_containment": {
+      "status": "not_executed",
+      "reason": "Docker services never reached a running state; runtime containment tests are blocked"
+    }
+  },
+  "documentation_consistency_check": {
+    "search_terms": [
+      "100%",
+      "0 failures",
+      "fully isolated",
+      "verified",
+      "production ready",
+      "student performance",
+      "improved learning"
+    ],
+    "result": "Occurrences were checked against actual evidence. Claims that were unsupported or stale were removed or qualified; live Docker and containment claims remain explicitly marked as not executed/not verified.",
+    "notable_findings": [
+      "The repository no longer states unsupported full-isolation claims in the main documentation or evidence files.",
+      "The Docker lab config comments were corrected to avoid overstating runtime containment.",
+      "Historical results files remain accurate to their recorded run and are not treated as unexecuted evidence."
+    ]
+  },
+  "final_gate": {
+    "tests_pass": true,
+    "critical_scoring_logic_verified": true,
+    "evidence_chain_traceable": true,
+    "reset_has_appropriate_verification": "partial",
+    "containment_status_honestly_reported": true,
+    "documentation_matches_reality": true,
+    "reproducibility_instructions_work": true,
+    "unsupported_claims_removed": true,
+    "submission_ready": false
+  },
+  "remaining_blockers": [
+    "Live Docker startup failed during build: missing file ./appdata/openplc.db in the OilSprings lab config, so real scenario startup, health validation, reset, residue detection, and network containment could not complete.",
+    "Because startup did not complete, the project is not yet submission-ready for live deployment or live containment claims.",
+    "npm audit reported 31 vulnerabilities; this was not remediated in this verification phase and should be reviewed separately before production-facing deployment."
+  ]
+}

@@ -2,7 +2,7 @@
 
 [![Project Status](https://img.shields.io/badge/Status-Research--Grade%20Cyber%20Range-blue.svg)](https://github.com/navin2006-kumar/CyberPro)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests: 7/7 Passing](https://img.shields.io/badge/Automated%20Tests-7%2F7%20Passed-brightgreen.svg)](docs/testing.md)
+[![Tests: 12/12 Passing](https://img.shields.io/badge/Automated%20Tests-12%2F12%20Passed-brightgreen.svg)](docs/testing.md)
 [![Node.js: >=18](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-blue.svg)](https://nodejs.org/)
 [![Docker: Compose v2](https://img.shields.io/badge/Docker-Compose%20v2-2496ED.svg)](https://www.docker.com/)
 
@@ -116,13 +116,13 @@ Access the management portal at **`http://localhost:3000`**.
 
 ## 🛡️ Security & Hardening Controls
 
-The cyber range is hardened according to modern defense-in-depth principles:
+The project configuration includes defense-in-depth patterns intended to reduce risk and preserve separation in the lab design:
 - **No Privileged Containers**: `privileged: true` has been eliminated from all services.
 - **Dropped Capabilities**: Containers enforce `cap_drop: ALL`, retaining only required capabilities (`NET_ADMIN` on PLC, `NET_RAW` on IDS).
-- **Resource Constraints**: Hard memory quotas (512MB–1024MB) and CPU allocations (0.5–1.0) prevent host starvation.
-- **Isolated Subnets**: Internal OT networks declare `internal: true`, blocking default gateway egress to the host or internet.
-- **Role-Based Access Control**: Strict privilege tiers (`student`, `instructor`, `admin`) enforced via centralized middleware.
-- **Emergency Stop**: Audited killswitch (`POST /api/emergency-stop`) allows instructors to immediately terminate all active containers.
+- **Resource Constraints**: Hard memory quotas (512MB–1024MB) and CPU allocations (0.5–1.0) are declared for services.
+- **Isolated Subnets**: Internal OT networks declare `internal: true`, but runtime containment remains unverified because Docker Engine was unavailable during execution.
+- **Role-Based Access Control**: Strict privilege tiers (`student`, `instructor`, `admin`) are enforced via centralized middleware and the test suite.
+- **Emergency Stop**: Audited killswitch (`POST /api/emergency-stop`) is implemented and covered by the application-level checks.
 
 See [docs/security.md](docs/security.md) and [docs/risk-register.md](docs/risk-register.md) for full threat models and mitigations.
 
@@ -130,7 +130,7 @@ See [docs/security.md](docs/security.md) and [docs/risk-register.md](docs/risk-r
 
 ## 🧪 Automated Verification Suite
 
-CyberPro includes 7 comprehensive automated test suites with 51 assertions.
+The project currently includes 12 automated suites covering the objective engine, scoring, replay, timeline, auth/RBAC, reset logic, scenario lifecycle, concurrency, and evidence admission. This verifies the implemented control-plane behavior and SQLite-backed data integrity in the tested environment; it does not establish learner learning gains, real-world containment effectiveness, or live Docker runtime security.
 
 ### Verification Status
 Command executed on 2026-10-05:
@@ -140,25 +140,30 @@ npm test
 ```
 Observed result:
 ```
-Total Suites: 7 | Passed: 7 | Failed: 0
+Total Suites: 12 | Passed: 12 | Failed: 0
 ```
 
 Result table from the actual run:
 ```
-┌─────────┬───────────────────────────────────┬──────────┬──────────┐
-│ (index) │ name                              │ status   │ duration │
-├─────────┼───────────────────────────────────┼──────────┼──────────┤
-│ 0       │ 'Unit: Objective Engine'          │ 'PASSED' │ '648ms'  │
-│ 1       │ 'Unit: Scoring Engine'            │ 'PASSED' │ '632ms'  │
-│ 2       │ 'Unit: Timeline Engine'           │ 'PASSED' │ '667ms'  │
-│ 3       │ 'Unit: Authentication'            │ 'PASSED' │ '1663ms' │
-│ 4       │ 'Unit: RBAC Middleware'           │ 'PASSED' │ '645ms'  │
-│ 5       │ 'Integration: Scenario Lifecycle' │ 'PASSED' │ '833ms'  │
-│ 6       │ 'Security: RBAC Enforcement'      │ 'PASSED' │ '655ms'  │
-└─────────┴───────────────────────────────────┴──────────┴──────────┘
+┌─────────┬───────────────────────────────────────────┬──────────┬──────────┐
+│ (index) │ name                                      │ status   │ duration │
+├─────────┼───────────────────────────────────────────┼──────────┼──────────┤
+│ 0       │ 'Unit: Objective Engine'                  │ 'PASSED' │ '475ms'  │
+│ 1       │ 'Unit: Scoring Engine'                    │ 'PASSED' │ '493ms'  │
+│ 2       │ 'Unit: Score Replay'                      │ 'PASSED' │ '606ms'  │
+│ 3       │ 'Unit: Evidence Dashboard Model'          │ 'PASSED' │ '562ms'  │
+│ 4       │ 'Unit: Timeline Engine'                   │ 'PASSED' │ '576ms'  │
+│ 5       │ 'Unit: Authentication'                    │ 'PASSED' │ '1687ms' │
+│ 6       │ 'Unit: RBAC Middleware'                   │ 'PASSED' │ '596ms'  │
+│ 7       │ 'Unit: Reset Engine'                      │ 'PASSED' │ '583ms'  │
+│ 8       │ 'Integration: Scenario Lifecycle'         │ 'PASSED' │ '605ms'  │
+│ 9       │ 'Integration: Multi-Exercise Concurrency' │ 'PASSED' │ '829ms'  │
+│ 10      │ 'Security: RBAC Enforcement'              │ 'PASSED' │ '519ms'  │
+│ 11      │ 'Security: Evidence Admission'            │ 'PASSED' │ '1125ms' │
+└─────────┴───────────────────────────────────────────┴──────────┴──────────┘
 ```
 
-To run individual suites, refer to [docs/testing.md](docs/testing.md).
+To run individual suites, refer to [docs/testing.md](docs/testing.md). For the strict evidence classification and manuscript-ready summary, see [docs/evidence-matrix.md](docs/evidence-matrix.md) and [docs/paper-results-ready.md](docs/paper-results-ready.md).
 
 ---
 
@@ -171,7 +176,9 @@ To run individual suites, refer to [docs/testing.md](docs/testing.md).
 - 🔒 [Security Architecture](docs/security.md) — Container hardening, network isolation, RBAC matrix.
 - ⚠️ [Risk Register](docs/risk-register.md) — Threat matrix, vulnerability analysis, technical mitigations.
 - 🔁 [Reproducibility Protocol](docs/reproducibility.md) — Deterministic pinning, clean-state reset protocol.
-- 📋 [Research Manuscript Mapping](docs/paper-mapping.md) — Traceability matrix linking manuscript sections to codebase.
+- 📋 [Research Manuscript Mapping](docs/paper-mapping.md) — Traceability matrix linking manuscript sections to codebase and evidence status.
+- 📊 [Evidence Matrix](docs/evidence-matrix.md) — Claim-level classification of what is implemented, verified, proposed, or not executed.
+- 🧾 [Paper-Ready Results Summary](docs/paper-results-ready.md) — Only the results that were actually executed and recorded in this workspace.
 - 🧪 [Automated Testing Manual](docs/testing.md) — Unit, integration, security test execution and CI guide.
 
 ---

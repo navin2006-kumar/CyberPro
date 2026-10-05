@@ -12,11 +12,22 @@
 
 This document establishes direct traceability between the theoretical constructs, requirements, and design specifications defined in the research manuscript and the practical software components implemented in the CyberPro codebase.
 
-Every core concept in the developmental manuscript is substantiated by concrete source code, automated test suites, and empirical telemetry artifacts.
+Every claim in this mapping is classified using the project evidence standard: IMPLEMENTED, VERIFIED, PARTIALLY VERIFIED, PROPOSED, NOT VERIFIED, or NOT EXECUTED. The full manuscript-ready evidence set is limited to the results recorded in [paper-results-ready.md](paper-results-ready.md); learner-performance claims and live container/network containment claims remain excluded unless they are directly executed and recorded.
 
 ---
 
-## 2. Manuscript Section to Codebase Mapping Matrix
+## 2. Evidence Status Legend
+
+- IMPLEMENTED: code and API behavior are present in the repository.
+- VERIFIED: the behavior was executed in the project test suite and passed.
+- PARTIALLY VERIFIED: the design or configuration exists, but direct runtime proof remains incomplete.
+- PROPOSED: a concept is described as a future direction or research extension.
+- NOT VERIFIED: the claim is not supported by recorded execution in this workspace.
+- NOT EXECUTED: the required operational check was not run.
+
+---
+
+## 3. Manuscript Section to Codebase Mapping Matrix
 
 | Manuscript Section & Theme | Core Academic Requirement | Implemented Components | Verification & Evidence |
 |---|---|---|---|
@@ -29,5 +40,5 @@ Every core concept in the developmental manuscript is substantiated by concrete 
 | **Section 7: Reflective Debriefing & AAR** | Cognitive reinforcement through structured post-exercise reflection (Kolb's Experiential Learning Cycle). | `backend/routes/reports.js`: 6-dimension debriefing submission (`q_detected`, `q_evidence`, `q_action`, etc.), After-Action Report generation. | `debrief_responses` table, `GET /api/reports/:id/aar` API endpoint. |
 | **Section 8: Visual Timeline Synthesis** | Chronological timeline generated strictly from audit events without manual modification. | `backend/engines/timelineEngine.js`: Generates event sequence with relative offsets ($\Delta t$) and severity indicators. | `tests/unit/timelineEngine.test.js` (5/5 passed). |
 | **Section 9: Security, RBAC & Governance** | Multi-tiered authorization, visitor denial, admin emergency killswitch. | `backend/middleware/auth.js` (`requireAuth`, `requireRole`), `POST /api/emergency-stop`, removal of plaintext credential logging. | `tests/security/rbac-enforcement.test.js` (9/9 passed). |
-| **Section 10: Experimental Evaluation & Testing** | Automated verification of the tested software behavior. | `tests/run-all.js`: includes evidence admission, mocked reset verification, and retained-event score replay suites. | Replay tests verify deterministic control-plane behavior on synthetic data; they do not measure learner performance, verify a live lab, or guarantee complete application coverage. See [testing.md](testing.md) and [improvement-log.md](improvement-log.md). |
-| **Section 11: Research Evidence Dashboard** | Review objective evidence, score provenance, event chronology, and reset results from persisted backend records. | `public/dashboard.html`, `public/js/dashboard.js`, and `public/js/evidence-dashboard-model.js`; data comes from authenticated score, timeline, telemetry, scenario, and exercise-detail APIs. | `tests/unit/evidenceDashboard.test.js` (5 payload states), `tests/security/evidence-admission.test.js` (malformed telemetry and failed-reset API data), and actual-browser fixture checks across five states at desktop/mobile widths. UI verification only; no learner-performance claim. |
+| **Section 10: Experimental Evaluation & Testing** | Automated verification of the tested software behavior. | `tests/run-all.js`: includes evidence admission, mocked reset verification, and retained-event score replay suites. | VERIFIED. The 12-suite `npm test` run passed: 12/12 suites, 0 failed. This proves control-plane software behavior only; it does not measure learner performance, verify a live lab, or guarantee complete application coverage. See [testing.md](testing.md), [evidence-matrix.md](evidence-matrix.md), and [paper-results-ready.md](paper-results-ready.md). |
+| **Section 11: Research Evidence Dashboard** | Review objective evidence, score provenance, event chronology, and reset results from persisted backend records. | `public/dashboard.html`, `public/js/dashboard.js`, and `public/js/evidence-dashboard-model.js`; data comes from authenticated score, timeline, telemetry, scenario, and exercise-detail APIs. | VERIFIED for data/rendering logic in the tested environment. The dashboard payload model passed 5 targeted cases and was browser-checked for desktop/mobile widths. It is not evidence of learner learning or operational effectiveness. |
