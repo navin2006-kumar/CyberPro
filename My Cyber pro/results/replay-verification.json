@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-10-05T17:06:13.190Z",
+  "recorded_at": "2026-10-05T17:13:35.293Z",
   "execution_mode": "SOFTWARE_CONTROL_PLANE_REPLAY_TEST",
   "assurance_scope": "software/control-plane verification only; not learner performance",
   "source": "synthetic retained telemetry in in-memory SQLite",
