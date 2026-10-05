@@ -159,3 +159,25 @@ Values are sourced from backend responses; missing values display as unavailable
 npm test
 Total Suites: 12 | Passed: 12 | Failed: 0
 ```
+
+## 2026-10-05 — Lab Runtime and OpenPLC Environment Fix
+
+### Identified Issues
+1. **OpenPLC Controller Crash Loop**: Container `openplc_controller` repeatedly died on startup with `ModuleNotFoundError: No module named 'flask_sqlalchemy'`. OpenPLC v3's REST API code also requires `flask-jwt-extended` and `python-dotenv`, which were missing from the container image and `labs/openplc/Dockerfile`.
+2. **Network Security Port Mapping**: `labs/network-security/docker-compose.yml` specified `network_mode: host` alongside `ports: "8082:8082"`, preventing port publication on Windows Docker Desktop. The container image was also unbuilt.
+3. **Database Status Inconsistency**: Lab rows in `labs.db` held `error` status from failed earlier boot attempts.
+
+### Corrections Applied
+1. **OpenPLC Image & Dockerfile**:
+   - Installed `flask-sqlalchemy`, `flask-jwt-extended`, and `python-dotenv` into the `openplc-plc:latest` Docker image.
+   - Updated `labs/openplc/Dockerfile` to include the required dependencies in future builds.
+   - Configured `working_dir: /workdir/OpenPLC_v3/webserver` and `command: python3 webserver.py` in `labs/openplc/docker-compose.yml`.
+2. **Network Security Lab**:
+   - Removed `network_mode: host` from `labs/network-security/docker-compose.yml` to allow standard bridge port forwarding (`8082:8082`) on Docker Desktop.
+   - Built the `network-security-network-monitor` image.
+3. **Lab Verification**:
+   - OpenPLC (`openplc_controller`): Running, verified HTTP 200 on `http://127.0.0.1:8080`.
+   - SCADA Dashboard (`scada_nodered`): Running, verified HTTP 200 on `http://127.0.0.1:1880`.
+   - Network Security (`network_monitor`): Running, verified HTTP 200 on `http://127.0.0.1:8082`.
+   - Updated SQLite `labs.db` statuses to `running`.
+   - Re-executed full test suite (`npm test`): 12 / 12 test suites passed.

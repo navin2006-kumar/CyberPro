@@ -9,3 +9,5 @@ services:
     restart: unless-stopped
     environment:
       - TZ=UTC
+    working_dir: /workdir/OpenPLC_v3/webserver
+    command: python3 webserver.py

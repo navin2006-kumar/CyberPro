@@ -29,7 +29,7 @@ WORKDIR /workdir/OpenPLC_v3
 RUN ./install.sh linux
 
 # Install Python dependencies for webserver
-RUN pip3 install --no-cache-dir flask flask-login pymodbus pyserial
+RUN pip3 install --no-cache-dir flask flask-login pymodbus pyserial flask-sqlalchemy flask-jwt-extended python-dotenv
 
 # Expose web interface port
 EXPOSE 8080
