@@ -28,7 +28,15 @@ The CyberPro testing strategy prioritizes **end-to-end reliability, mathematical
 | **Scenario Lifecycle** | `tests/integration/scenario-flow.test.js` | Full 9-step scenario exercise lifecycle in SQLite | End-to-end verification from provisioning to reset |
 | **Security Matrix** | `tests/security/rbac-enforcement.test.js` | Route privilege boundary defense | 9 tests verifying complete privilege separation |
 
-**Total Coverage**: 7 Test Suites, 51 Assertions, 0 Failures.
+**Suite Count**: 7 automated test suites. Assertion totals are not reported by the test runner.
+
+### Verification Record (2026-10-05)
+Executed in the project root:
+```bash
+cd "C:\Users\navin\Documents\cyber\CyberPro\My Cyber pro"
+npm test
+```
+Observed result: **7/7 suites passed, 0 failed**. Individual suite output and environment limitations are recorded in [baseline-verification.md](baseline-verification.md).
 
 ---
 
@@ -80,4 +88,4 @@ jobs:
       - name: Run automated test suite
         run: npm test
 ```
-All tests are dependency-free (using built-in Node `assert`), executing in $< 15$ seconds with zero external network requirements.
+The suites use Node's built-in `assert` for checks and also require installed project dependencies, including `uuid`, `bcrypt`, and `sqlite3`. Install dependencies from this directory with `npm install` before running the tests. The suite does not require a running Docker daemon.

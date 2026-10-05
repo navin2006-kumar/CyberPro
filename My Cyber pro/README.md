@@ -130,21 +130,32 @@ See [docs/security.md](docs/security.md) and [docs/risk-register.md](docs/risk-r
 
 ## 🧪 Automated Verification Suite
 
-CyberPro includes 7 comprehensive automated test suites with 51 assertions:
+CyberPro includes 7 comprehensive automated test suites with 51 assertions.
 
+### Verification Status
+Command executed on 2026-10-05:
+```bash
+cd "C:\Users\navin\Documents\cyber\CyberPro\My Cyber pro"
+npm test
+```
+Observed result:
+```
+Total Suites: 7 | Passed: 7 | Failed: 0
+```
+
+Result table from the actual run:
 ```
 ┌─────────┬───────────────────────────────────┬──────────┬──────────┐
 │ (index) │ name                              │ status   │ duration │
 ├─────────┼───────────────────────────────────┼──────────┼──────────┤
-│ 0       │ 'Unit: Objective Engine'          │ 'PASSED' │ '1609ms' │
-│ 1       │ 'Unit: Scoring Engine'            │ 'PASSED' │ '2001ms' │
-│ 2       │ 'Unit: Timeline Engine'           │ 'PASSED' │ '2015ms' │
-│ 3       │ 'Unit: Authentication'            │ 'PASSED' │ '3247ms' │
-│ 4       │ 'Unit: RBAC Middleware'           │ 'PASSED' │ '1484ms' │
-│ 5       │ 'Integration: Scenario Lifecycle' │ 'PASSED' │ '1740ms' │
-│ 6       │ 'Security: RBAC Enforcement'      │ 'PASSED' │ '1726ms' │
+│ 0       │ 'Unit: Objective Engine'          │ 'PASSED' │ '648ms'  │
+│ 1       │ 'Unit: Scoring Engine'            │ 'PASSED' │ '632ms'  │
+│ 2       │ 'Unit: Timeline Engine'           │ 'PASSED' │ '667ms'  │
+│ 3       │ 'Unit: Authentication'            │ 'PASSED' │ '1663ms' │
+│ 4       │ 'Unit: RBAC Middleware'           │ 'PASSED' │ '645ms'  │
+│ 5       │ 'Integration: Scenario Lifecycle' │ 'PASSED' │ '833ms'  │
+│ 6       │ 'Security: RBAC Enforcement'      │ 'PASSED' │ '655ms'  │
 └─────────┴───────────────────────────────────┴──────────┴──────────┘
-Total Suites: 7 | Passed: 7 | Failed: 0
 ```
 
 To run individual suites, refer to [docs/testing.md](docs/testing.md).
