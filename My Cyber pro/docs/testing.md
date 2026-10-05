@@ -20,23 +20,24 @@ The CyberPro testing strategy prioritizes **end-to-end reliability, mathematical
 
 | Suite Name | Path | Target Component | Assertions |
 |---|---|---|---|
-| **Objective Engine** | `tests/unit/objectiveEngine.test.js` | `ObjectiveEngine` rule evaluation against mock telemetry | 8 tests covering protocol matching, text length boundaries, and event ID binding |
-| **Scoring Engine** | `tests/unit/scoringEngine.test.js` | `ScoringEngine` point aggregation and pass criteria | 6 tests covering threshold enforcement, required objectives, and duration math |
+| **Objective Engine** | `tests/unit/objectiveEngine.test.js` | `ObjectiveEngine` rule evaluation against scoped telemetry | 13 tests covering all PLC-001 objectives, ownership/scope spoofing, invalid payloads/types, configured checks, and persisted evidence IDs |
+| **Scoring Engine** | `tests/unit/scoringEngine.test.js` | `ScoringEngine` evidence-backed points and configured pass criteria | 11 tests covering score/objective thresholds, evidence gating, trace fields, and duration math |
 | **Timeline Engine** | `tests/unit/timelineEngine.test.js` | `TimelineEngine` chronology & description formatting | 5 tests covering event formatting, relative offsets, and severity mapping |
 | **Authentication** | `tests/unit/auth.test.js` | Bcrypt password hashing & credential checking | 5 tests covering hashing, salt uniqueness, and invalid password rejection |
 | **RBAC Middleware** | `tests/unit/rbac.test.js` | `requireAuth` & `requireRole` middleware | 12 tests covering all role permutations and unauthenticated access denial |
-| **Scenario Lifecycle** | `tests/integration/scenario-flow.test.js` | Full 9-step scenario exercise lifecycle in SQLite | End-to-end verification from provisioning to reset |
+| **Scenario Lifecycle** | `tests/integration/scenario-flow.test.js` | 9-step scenario exercise lifecycle in in-memory SQLite | End-to-end database verification, including exclusion of spoofed evidence and evidence ID persistence; does not run Docker |
 | **Security Matrix** | `tests/security/rbac-enforcement.test.js` | Route privilege boundary defense | 9 tests verifying complete privilege separation |
 
-**Suite Count**: 7 automated test suites. Assertion totals are not reported by the test runner.
+**Suite Count**: 7 automated test suites. The test runner does not report a single assertion total.
 
-### Verification Record (2026-10-05)
-Executed in the project root:
+### Phase 1 Verification Record (2026-10-05)
+Focused commands executed in the project root:
 ```bash
-cd "C:\Users\navin\Documents\cyber\CyberPro\My Cyber pro"
-npm test
+node tests/unit/objectiveEngine.test.js
+node tests/unit/scoringEngine.test.js
+node tests/integration/scenario-flow.test.js
 ```
-Observed result: **7/7 suites passed, 0 failed**. Individual suite output and environment limitations are recorded in [baseline-verification.md](baseline-verification.md).
+Observed results: **Objective Engine 13 passed, Scoring Engine 11 passed, Scenario Lifecycle passed through all 9 steps**. Full-suite result is recorded after the Phase 1 run below.
 
 ---
 
@@ -88,4 +89,4 @@ jobs:
       - name: Run automated test suite
         run: npm test
 ```
-The suites use Node's built-in `assert` for checks and also require installed project dependencies, including `uuid`, `bcrypt`, and `sqlite3`. Install dependencies from this directory with `npm install` before running the tests. The suite does not require a running Docker daemon.
+The suites use Node's built-in `assert` for checks and also require installed project dependencies, including `uuid`, `bcrypt`, and `sqlite3`. Install dependencies from this directory with `npm install` before running the tests. The automated lifecycle suite does not require a running Docker daemon and does not verify live container resets or health checks.

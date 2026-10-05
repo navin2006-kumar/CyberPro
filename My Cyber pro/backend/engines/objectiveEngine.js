@@ -37,7 +37,7 @@ class ObjectiveEngine {
         const results = [];
 
         for (const obj of objectives) {
-            const result = await this._evaluateObjective(exerciseId, obj);
+            const result = await this._evaluateObjective(exercise, obj);
             results.push(result);
         }
 
@@ -50,9 +50,9 @@ class ObjectiveEngine {
      * @param {object} objective - scenario_objectives row
      * @returns {Promise<object>} { objective_id, status, score, evidence_event_ids }
      */
-    async _evaluateObjective(exerciseId, objective) {
+    async _evaluateObjective(exercise, objective) {
         const logic = this._parseDetectionLogic(objective.detection_logic);
-        const matchingEvents = await this._queryMatchingEvents(exerciseId, logic);
+        const matchingEvents = await this._queryMatchingEvents(exercise, logic);
 
         const status = matchingEvents.length > 0 ? 'pass' : 'fail';
         const score = status === 'pass' ? objective.points : 0;
@@ -60,7 +60,7 @@ class ObjectiveEngine {
 
         // Upsert into objective_results
         await this._saveObjectiveResult(
-            exerciseId,
+            exercise.id,
             objective.id,
             status,
             score,
@@ -82,27 +82,37 @@ class ObjectiveEngine {
     /**
      * Query telemetry_events that match the detection logic for an objective.
      */
-    async _queryMatchingEvents(exerciseId, logic) {
-        if (!logic || !logic.event_type) return [];
+    async _queryMatchingEvents(exercise, logic) {
+        if (!logic) return [];
 
         return new Promise((resolve, reject) => {
-            // Base query: match exercise + source + event_type
             const sql = `
                 SELECT * FROM telemetry_events
                 WHERE exercise_id = ?
+                  AND scenario_id = ?
+                   AND ((source = 'student' AND user_id = ?) OR
+                       (source != 'student' AND user_id IS NULL))
                   AND source = ?
                   AND event_type = ?
                 ORDER BY timestamp ASC
             `;
 
-            this.db.db.all(sql, [exerciseId, logic.source, logic.event_type], (err, rows) => {
+            this.db.db.all(sql, [
+                exercise.id,
+                exercise.scenario_id,
+                exercise.user_id,
+                logic.source,
+                logic.event_type
+            ], (err, rows) => {
                 if (err) return reject(err);
 
-                // Apply field_checks (client-side filter on JSON data)
                 const checks = logic.field_checks || {};
                 const filtered = (rows || []).filter(row => {
+                    if (typeof row.id !== 'string' || !row.id) return false;
+                    if (typeof row.data !== 'string') return false;
                     try {
-                        const data = row.data ? JSON.parse(row.data) : {};
+                        const data = JSON.parse(row.data);
+                        if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
                         return this._checkFields(data, checks, row);
                     } catch {
                         return false;
@@ -118,22 +128,23 @@ class ObjectiveEngine {
      * Check that a telemetry event's data fields match the required conditions.
      */
     _checkFields(data, checks, row) {
+        if (!checks || typeof checks !== 'object' || Array.isArray(checks)) return false;
+
         for (const [field, expected] of Object.entries(checks)) {
-            // Special case: minimum text length
             if (field.endsWith('_min_length')) {
                 const actualField = field.replace('_min_length', '');
-                const text = data[actualField] || '';
-                if (text.length < expected) return false;
+                const text = data[actualField];
+                if (typeof expected !== 'number' || !Number.isFinite(expected) || expected < 0 ||
+                    typeof text !== 'string' || text.trim().length < expected) return false;
                 continue;
             }
 
-            const actual = data[field] !== undefined ? data[field] : row[field];
+            const actual = field === 'severity' ? row.severity : data[field];
+            if (actual === undefined || actual === null) return false;
 
             if (Array.isArray(expected)) {
-                // Expected is a list of acceptable values
                 if (!expected.includes(actual)) return false;
             } else {
-                // Expected is a single value
                 if (actual !== expected) return false;
             }
         }
@@ -166,7 +177,16 @@ class ObjectiveEngine {
     _parseDetectionLogic(raw) {
         if (!raw) return null;
         try {
-            return typeof raw === 'string' ? JSON.parse(raw) : raw;
+            const logic = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            if (!logic || typeof logic !== 'object' || Array.isArray(logic) ||
+                typeof logic.source !== 'string' || !logic.source ||
+                typeof logic.event_type !== 'string' || !logic.event_type ||
+                (logic.field_checks !== undefined &&
+                    (!logic.field_checks || typeof logic.field_checks !== 'object' ||
+                        Array.isArray(logic.field_checks)))) {
+                return null;
+            }
+            return logic;
         } catch {
             return null;
         }

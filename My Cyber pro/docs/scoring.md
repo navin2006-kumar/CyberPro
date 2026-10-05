@@ -13,7 +13,7 @@ Traditional cyber training environments typically utilize flags (e.g., `CTF{...}
 - *When* the learner responded relative to incident onset.
 - *What* evidence supported the learner's decision.
 
-CyberPro eliminates heuristic and subjective grading by implementing **deterministic, evidence-traceable evaluation**. Every score is directly tied to immutable telemetry events logged during the exercise session.
+CyberPro implements deterministic, evidence-traceable evaluation. An objective can pass only when matching telemetry is scoped to the exercise and scenario, has the configured source and event type, contains a valid JSON object, passes each configured field check, and has a valid event ID. Student evidence must belong to the exercise owner; non-student evidence must not be attributed to a session user.
 
 ---
 
@@ -26,18 +26,16 @@ $$S_{\text{total}} = \sum_{i=1}^{N} s_i$$
 Where individual objective score $s_i$ is determined by deterministic predicate $P_i$ evaluated over the telemetry event set $T_E$:
 
 $$s_i = \begin{cases} 
-\text{Points}_i & \text{if } P_i(T_E) = \text{true} \\
+	ext{Points}_i & \text{if } P_i(T_E) = \text{true and at least one evidence event ID is retained} \\
 0 & \text{if } P_i(T_E) = \text{false}
 \end{cases}$$
 
 ### Pass / Fail Condition
 An exercise is marked as **PASSED** if and only if:
-1. Total score meets or exceeds the scenario threshold:
-$$S_{\text{total}} \ge S_{\text{threshold}} \quad (\text{Default: } 75)$$
-2. **All** required objectives are satisfied:
-$$\forall i \in \{1 \dots N\}, \quad \text{Required}_i = \text{true} \implies s_i = \text{Points}_i$$
+1. `total_score >= success_conditions.min_score`.
+2. The number of evidence-backed passed required objectives is at least `success_conditions.min_objectives_required_passed`.
 
-If a student accumulates 75 points but failed a mandatory objective (e.g. `PLC-001-OBJ-1`), the overall exercise state is marked **FAILED**, enforcing critical defensive standard compliance.
+Both settings are read from the scenario manifest's `success_conditions` object (or the database field when populated). There are no hardcoded score or objective-count defaults. For PLC-001, the configured values are 75 points and 3 required objectives. Objectives 1-3 are marked required; objective 4 is optional. A failed required objective does not independently override these two configured gates.
 
 ---
 
@@ -72,15 +70,18 @@ Whenever `ObjectiveEngine` evaluates an objective, it extracts and records the p
 └───────────────────────────────┘
 ```
 
+The score response's `objective_breakdown` exposes `objective_id`, `status`, `points_earned`, `points_possible`, `evidence_count`, and `evidence_event_ids` for every objective. The scorer derives awarded points from the configured objective points only when status is pass and at least one valid event ID is present. IDs are deduplicated before counting and returned. The SQLite lifecycle test verifies persisted `objective_results.evidence_event_ids` and excludes wrong-exercise, wrong-scenario, wrong-owner, and spoofed-source rows.
+
 ### Traceability Guarantee
 Any instructor, auditor, or academic researcher can answer the question:
 > *"Why did this student receive points for Objective 1?"*
 
 By running:
 ```sql
-SELECT o.objective_id, o.status, o.score, t.event_type, t.timestamp, t.data
+SELECT o.objective_id, o.status, o.score, t.id, t.event_type, t.timestamp, t.data
 FROM objective_results o
-JOIN telemetry_events t ON instr(o.evidence_event_ids, t.id) > 0
+JOIN json_each(o.evidence_event_ids) evidence ON evidence.value = t.id
+JOIN telemetry_events t ON t.id = evidence.value
 WHERE o.exercise_id = 'target-exercise-id';
 ```
 

@@ -15,6 +15,9 @@
  *   objective_results → evidence_event_ids → telemetry_events
  */
 
+const fs = require('fs');
+const path = require('path');
+
 class ScoringEngine {
     /**
      * @param {object} db - Database instance (db.js)
@@ -38,19 +41,43 @@ class ScoringEngine {
         // 2. Get scenario success conditions
         const exercise = await this._getExercise(exerciseId);
         const scenario = await this._getScenario(exercise.scenario_id);
+        if (!scenario) throw new Error(`Scenario not found: ${exercise.scenario_id}`);
+        const successConditions = this._getSuccessConditions(scenario);
 
         // 3. Calculate totals
         let totalScore = 0;
         let maxScore = 0;
         let passed = 0;
         let failed = 0;
+        let requiredPassed = 0;
         const failedRequired = [];
+        const evaluatedObjectives = objectiveResults.map(result => {
+            if (!Number.isSafeInteger(result.points) || result.points < 0) {
+                throw new Error(`Invalid points for objective ${result.objective_id}`);
+            }
 
-        for (const result of objectiveResults) {
+            const evidenceIds = Array.isArray(result.evidence_event_ids)
+                ? [...new Set(result.evidence_event_ids.filter(id => typeof id === 'string' && id.trim()))]
+                : [];
+            const hasEvidence = result.status === 'pass' && evidenceIds.length > 0;
+            const status = hasEvidence ? 'pass' : 'fail';
+
+            return {
+                ...result,
+                required: Boolean(result.required),
+                status,
+                score: hasEvidence ? result.points : 0,
+                evidence_count: evidenceIds.length,
+                evidence_event_ids: evidenceIds
+            };
+        });
+
+        for (const result of evaluatedObjectives) {
             maxScore += result.points;
             if (result.status === 'pass') {
                 totalScore += result.score;
                 passed++;
+                if (result.required) requiredPassed++;
             } else {
                 failed++;
                 if (result.required) {
@@ -60,9 +87,9 @@ class ScoringEngine {
         }
 
         // 4. Determine pass/fail for the exercise overall
-        const minScore = scenario ? (scenario.min_score || 75) : 75;
-        const minRequired = scenario ? (scenario.min_required_passed || 3) : 3;
-        const exercisePassed = totalScore >= minScore && failedRequired.length === 0;
+    const minScore = successConditions.min_score;
+    const minRequired = successConditions.min_objectives_required_passed;
+    const exercisePassed = totalScore >= minScore && requiredPassed >= minRequired;
 
         // 5. Calculate completion time (minutes)
         let completionMinutes = null;
@@ -94,12 +121,15 @@ class ScoringEngine {
             percentage: maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0,
             passed: exercisePassed,
             pass_threshold: minScore,
+            minimum_required_objectives: minRequired,
+            required_objectives_passed: requiredPassed,
             completion_time_minutes: completionMinutes,
             objectives_passed: passed,
             objectives_failed: failed,
             failed_required_objectives: failedRequired,
-            objective_breakdown: objectiveResults.map(r => ({
+            objective_breakdown: evaluatedObjectives.map(r => ({
                 id: r.objective_id,
+                objective_id: r.objective_id,
                 name: r.name,
                 required: r.required,
                 status: r.status,
@@ -108,9 +138,10 @@ class ScoringEngine {
                 evidence_count: r.evidence_count,
                 evidence_event_ids: r.evidence_event_ids
             })),
-            scoring_rationale: `Score = sum of points for passed objectives. ` +
-                `${passed}/${objectiveResults.length} objectives passed. ` +
-                `Minimum passing score: ${minScore}/100. ` +
+            scoring_rationale: `Score = sum of points for evidence-backed passed objectives. ` +
+                `${passed}/${evaluatedObjectives.length} objectives passed; ` +
+                `${requiredPassed}/${minRequired} required objectives needed. ` +
+                `Minimum passing score: ${minScore}. ` +
                 `Every point is traceable to a telemetry event in evidence_event_ids.`,
             scored_at: new Date().toISOString()
         };
@@ -153,13 +184,56 @@ class ScoringEngine {
 
     _getScenario(scenarioId) {
         return new Promise((resolve, reject) => {
-            // success_conditions stored as a separate field or in scenarios table
             this.db.db.get(
                 'SELECT * FROM scenarios WHERE id = ?',
                 [scenarioId],
                 (err, row) => err ? reject(err) : resolve(row || null)
             );
         });
+    }
+
+    _getSuccessConditions(scenario) {
+        let conditions = scenario.success_conditions;
+
+        if (conditions === undefined || conditions === null) {
+            if (typeof scenario.id !== 'string' || !scenario.id) {
+                throw new Error('Scenario success_conditions are missing');
+            }
+
+            const scenariosRoot = path.resolve(__dirname, '../../scenarios');
+            const manifestPath = path.resolve(scenariosRoot, scenario.id, 'scenario.json');
+            const relativePath = path.relative(scenariosRoot, manifestPath);
+            if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+                throw new Error(`Invalid scenario ID: ${scenario.id}`);
+            }
+
+            try {
+                const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+                if (manifest.scenario_id !== scenario.id) {
+                    throw new Error(`Scenario manifest ID mismatch: ${scenario.id}`);
+                }
+                conditions = manifest.success_conditions;
+            } catch (error) {
+                throw new Error(`Unable to load success_conditions for ${scenario.id}: ${error.message}`);
+            }
+        }
+
+        if (typeof conditions === 'string') {
+            try {
+                conditions = JSON.parse(conditions);
+            } catch (error) {
+                throw new Error(`Invalid success_conditions for ${scenario.id}: ${error.message}`);
+            }
+        }
+
+        if (!conditions || typeof conditions !== 'object' || Array.isArray(conditions) ||
+            !Number.isFinite(conditions.min_score) || conditions.min_score < 0 ||
+            !Number.isSafeInteger(conditions.min_objectives_required_passed) ||
+            conditions.min_objectives_required_passed < 0) {
+            throw new Error(`Invalid success_conditions for ${scenario.id}`);
+        }
+
+        return conditions;
     }
 }
 

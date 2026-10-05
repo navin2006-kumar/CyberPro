@@ -79,6 +79,8 @@ function createTestDatabase() {
                 db.run(`CREATE TABLE telemetry_events (
                     id TEXT PRIMARY KEY,
                     exercise_id TEXT NOT NULL REFERENCES exercise_sessions(id),
+                    scenario_id TEXT,
+                    user_id INTEGER REFERENCES users(id),
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                     source TEXT NOT NULL,
                     event_type TEXT NOT NULL,
@@ -164,6 +166,7 @@ async function run() {
 
     // 1. Seed User, Lab, Scenario, and Objectives (PLC-001)
     await exec(`INSERT INTO users (id, username, password, role) VALUES (1, 'student_alice', 'hash', 'student')`);
+    await exec(`INSERT INTO users (id, username, password, role) VALUES (2, 'student_bob', 'hash', 'student')`);
     await exec(`INSERT INTO labs (id, name, slug) VALUES (1, 'OilSprings Industrial SCADA', 'oilsprings')`);
     await exec(`INSERT INTO scenarios (id, name, description, difficulty, time_limit_minutes, lab_id)
                 VALUES ('PLC-001', 'PLC Attack Detection', 'Detect Modbus reconnaissance', 'medium', 30, 1)`);
@@ -185,28 +188,54 @@ async function run() {
 
     // 3. System + IDS Telemetry Arrival
     const startEventId = uuidv4();
-    await exec(`INSERT INTO telemetry_events (id, exercise_id, source, event_type, severity, data)
-                VALUES (?, ?, 'system', 'exercise_started', 'info', ?)`,
+    await exec(`INSERT INTO telemetry_events
+                    (id, exercise_id, scenario_id, user_id, source, event_type, severity, data)
+                VALUES (?, ?, 'PLC-001', 1, 'system', 'exercise_started', 'info', ?)`,
         [startEventId, exerciseId, JSON.stringify({ username: 'student_alice' })]);
 
     const idsEventId = uuidv4();
-    await exec(`INSERT INTO telemetry_events (id, exercise_id, source, event_type, severity, data)
-                VALUES (?, ?, 'ids', 'modbus_anomaly', 'high', ?)`,
+    await exec(`INSERT INTO telemetry_events
+                    (id, exercise_id, scenario_id, user_id, source, event_type, severity, data)
+                VALUES (?, ?, 'PLC-001', NULL, 'ids', 'modbus_anomaly', 'high', ?)`,
         [idsEventId, exerciseId, JSON.stringify({ src_ip: '10.10.5.50', dst_ip: '10.10.2.10', dst_port: 502, severity: 'high' })]);
 
     console.log('  ✓ Step 3: Ingested exercise_started & IDS modbus_anomaly telemetry events');
 
     // 4. Student Submissions
     const idEventId = uuidv4();
-    await exec(`INSERT INTO telemetry_events (id, exercise_id, source, event_type, severity, data)
-                VALUES (?, ?, 'student', 'host_identified', 'info', ?)`,
+    await exec(`INSERT INTO telemetry_events
+                    (id, exercise_id, scenario_id, user_id, source, event_type, severity, data)
+                VALUES (?, ?, 'PLC-001', 1, 'student', 'host_identified', 'info', ?)`,
         [idEventId, exerciseId, JSON.stringify({ identified_ip: '10.10.2.10' })]);
 
     const analysisText = 'Observed anomalous Modbus read coils request from unmapped host 10.10.5.50 targeting PLC at 10.10.2.10.';
     const analysisEventId = uuidv4();
-    await exec(`INSERT INTO telemetry_events (id, exercise_id, source, event_type, severity, data)
-                VALUES (?, ?, 'student', 'log_analysis_submitted', 'info', ?)`,
+    await exec(`INSERT INTO telemetry_events
+                    (id, exercise_id, scenario_id, user_id, source, event_type, severity, data)
+                VALUES (?, ?, 'PLC-001', 1, 'student', 'log_analysis_submitted', 'info', ?)`,
         [analysisEventId, exerciseId, JSON.stringify({ analysis_text: analysisText })]);
+
+    const otherExerciseId = uuidv4();
+    await exec(`INSERT INTO exercise_sessions (id, scenario_id, user_id, status)
+                VALUES (?, 'PLC-001', 1, 'active')`, [otherExerciseId]);
+    const wrongScopeEventIds = [uuidv4(), uuidv4(), uuidv4(), uuidv4()];
+    await exec(`INSERT INTO telemetry_events
+                    (id, exercise_id, scenario_id, user_id, source, event_type, severity, data)
+                VALUES
+                    (?, ?, 'PLC-001', NULL, 'ids', 'modbus_anomaly', 'high', ?),
+                    (?, ?, 'PLC-OTHER', NULL, 'ids', 'modbus_anomaly', 'high', ?),
+                    (?, ?, 'PLC-001', 2, 'student', 'host_identified', 'info', ?),
+                    (?, ?, 'PLC-001', 1, 'ids', 'modbus_anomaly', 'high', ?)`,
+        [
+            wrongScopeEventIds[0], otherExerciseId,
+            JSON.stringify({ dst_port: 502 }),
+            wrongScopeEventIds[1], exerciseId,
+            JSON.stringify({ dst_port: 502 }),
+            wrongScopeEventIds[2], exerciseId,
+            JSON.stringify({ identified_ip: '10.10.2.10' }),
+            wrongScopeEventIds[3], exerciseId,
+            JSON.stringify({ dst_port: 502 })
+        ]);
 
     console.log('  ✓ Step 4: Recorded student host identification and analytical debrief input');
 
@@ -222,6 +251,17 @@ async function run() {
     // Verify evidence traceability
     const obj1 = scoreSummary.objective_breakdown.find(o => o.id === 'PLC-001-OBJ-1');
     assert.ok(obj1.evidence_event_ids.includes(idsEventId), 'OBJ-1 binds directly to IDS event ID');
+    assert.deepStrictEqual(obj1.evidence_event_ids, [idsEventId],
+        'Wrong-exercise and wrong-scenario IDS events are excluded');
+    const obj2 = scoreSummary.objective_breakdown.find(o => o.id === 'PLC-001-OBJ-2');
+    assert.deepStrictEqual(obj2.evidence_event_ids, [idEventId],
+        'Evidence owned by another student is excluded');
+    const persistedObj1 = await get(
+        'SELECT status, score, evidence_event_ids FROM objective_results WHERE exercise_id = ? AND objective_id = ?',
+        [exerciseId, 'PLC-001-OBJ-1']);
+    assert.strictEqual(persistedObj1.status, 'pass');
+    assert.strictEqual(persistedObj1.score, 25);
+    assert.deepStrictEqual(JSON.parse(persistedObj1.evidence_event_ids), [idsEventId]);
 
     console.log('  ✓ Step 5-6: Evaluated objectives & computed 75/100 pass score with evidence bindings');
 
@@ -237,9 +277,9 @@ async function run() {
 
     // 8. Timeline Synthesis
     const timeline = await timelineEngine.generate(exerciseId);
-    assert.strictEqual(timeline.entry_count, 4, 'Timeline contains exactly the 4 recorded events');
-    assert.ok(timeline.entries[1].description.includes('Anomalous Modbus/TCP traffic'));
-    assert.ok(timeline.entries[2].description.includes('10.10.2.10'));
+    assert.strictEqual(timeline.entry_count, 7, 'Timeline includes all seven events scoped to this exercise');
+    assert.ok(timeline.entries.some(entry => entry.description.includes('Anomalous Modbus/TCP traffic')));
+    assert.ok(timeline.entries.some(entry => entry.description.includes('10.10.2.10')));
     console.log('  ✓ Step 8: Generated chronological timeline from telemetry audit trail');
 
     // 9. Reset Recording

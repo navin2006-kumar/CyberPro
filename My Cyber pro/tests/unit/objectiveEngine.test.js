@@ -11,25 +11,50 @@ const ObjectiveEngine = require('../../backend/engines/objectiveEngine');
 
 // ── Mock database ──────────────────────────────────────────────────────────────
 function makeDb(exerciseRow, objectives, events) {
+    const savedResults = [];
     return {
+        savedResults,
         db: {
             get: (sql, params, cb) => {
                 if (sql.includes('exercise_sessions')) return cb(null, exerciseRow);
-                if (sql.includes('scenarios WHERE id')) return cb(null, {});
                 cb(null, null);
             },
             all: (sql, params, cb) => {
                 if (sql.includes('scenario_objectives')) return cb(null, objectives);
                 if (sql.includes('telemetry_events')) {
-                    // Filter events by source and event_type from params
-                    const [, src, et] = params;
-                    const filtered = events.filter(e => e.source === src && e.event_type === et);
+                    const [exerciseId, scenarioId, ownerId, source, eventType] = params;
+                    const filtered = events.filter(event =>
+                        event.exercise_id === exerciseId &&
+                        event.scenario_id === scenarioId &&
+                        (event.source === 'student'
+                            ? event.user_id === ownerId
+                            : event.user_id == null) &&
+                        event.source === source &&
+                        event.event_type === eventType
+                    );
                     return cb(null, filtered);
                 }
                 cb(null, []);
             },
-            run: (sql, params, cb) => cb ? cb(null) : null
+            run: (sql, params, cb) => {
+                if (sql.includes('INSERT INTO objective_results')) savedResults.push(params);
+                if (cb) cb(null);
+            }
         }
+    };
+}
+
+function makeEvent(id, source, eventType, data, overrides = {}) {
+    return {
+        id,
+        exercise_id: 'ex-001',
+        scenario_id: 'PLC-001',
+        user_id: source === 'student' ? 1 : null,
+        source,
+        event_type: eventType,
+        severity: 'high',
+        data: typeof data === 'string' ? data : JSON.stringify(data),
+        ...overrides
     };
 }
 
@@ -95,117 +120,160 @@ async function test(name, fn) {
                 event_type: 'log_analysis_submitted',
                 field_checks: { analysis_text_min_length: 50 }
             })
+        },
+        {
+            id: 'PLC-001-OBJ-4',
+            name: 'Contain Incident',
+            points: 25,
+            required: 0,
+            order_index: 3,
+            detection_logic: JSON.stringify({
+                source: 'student',
+                event_type: 'containment_action',
+                field_checks: {
+                    action_type: ['block_ip', 'isolate_container', 'firewall_rule', 'disconnect_network']
+                }
+            })
         }
     ];
 
-    // ── Test 1: All objectives pass when matching events exist ──
-    await test('OBJ-1 passes when IDS modbus_anomaly event with matching dst_port exists', async () => {
-        const events = [{
-            id: 'evt-001', source: 'ids', event_type: 'modbus_anomaly',
-            data: JSON.stringify({ dst_port: 502, severity: 'high' })
-        }];
-        const db = makeDb(exerciseRow, objectives, events);
+    const evaluate = async (objectiveId, events, exercise = exerciseRow) => {
+        const db = makeDb(exercise, objectives, events);
         const engine = new ObjectiveEngine(db);
-        const results = await engine.evaluateAll('ex-001');
-        const obj1 = results.find(r => r.objective_id === 'PLC-001-OBJ-1');
-        assert.strictEqual(obj1.status, 'pass', `Expected pass, got ${obj1.status}`);
-        assert.strictEqual(obj1.score, 25);
-        assert.ok(obj1.evidence_event_ids.includes('evt-001'));
+        const results = await engine.evaluateAll(exercise.id);
+        return {
+            result: results.find(item => item.objective_id === objectiveId),
+            saved: db.savedResults
+        };
+    };
+
+    const expectStatus = async (objectiveId, events, status, exercise) => {
+        const { result } = await evaluate(objectiveId, events, exercise);
+        assert.strictEqual(result.status, status);
+        assert.strictEqual(result.score, status === 'pass' ? result.points : 0);
+    };
+
+    await test('OBJ-1 accepts matching IDS evidence with allowed port and severity', async () => {
+        const { result, saved } = await evaluate('PLC-001-OBJ-1', [
+            makeEvent('evt-valid-1', 'ids', 'modbus_anomaly', { dst_port: 502 }),
+            makeEvent('evt-valid-2', 'ids', 'modbus_anomaly', { dst_port: 502 }, { severity: 'critical' })
+        ]);
+        assert.strictEqual(result.status, 'pass');
+        assert.strictEqual(result.score, 25);
+        assert.deepStrictEqual(result.evidence_event_ids, ['evt-valid-1', 'evt-valid-2']);
+        assert.deepStrictEqual(JSON.parse(saved.find(row => row[1] === 'PLC-001-OBJ-1')[4]), result.evidence_event_ids);
     });
 
-    // ── Test 2: OBJ-1 fails when no matching events ──
-    await test('OBJ-1 fails when no IDS modbus_anomaly events exist', async () => {
-        const db = makeDb(exerciseRow, objectives, []);
-        const engine = new ObjectiveEngine(db);
-        const results = await engine.evaluateAll('ex-001');
-        const obj1 = results.find(r => r.objective_id === 'PLC-001-OBJ-1');
-        assert.strictEqual(obj1.status, 'fail');
-        assert.strictEqual(obj1.score, 0);
-        assert.deepStrictEqual(obj1.evidence_event_ids, []);
-    });
-
-    // ── Test 3: OBJ-1 fails with wrong dst_port ──
-    await test('OBJ-1 fails when event has wrong dst_port (not 502)', async () => {
-        const events = [{
-            id: 'evt-bad', source: 'ids', event_type: 'modbus_anomaly',
-            data: JSON.stringify({ dst_port: 80, severity: 'high' })
-        }];
-        const db = makeDb(exerciseRow, objectives, events);
-        const engine = new ObjectiveEngine(db);
-        const results = await engine.evaluateAll('ex-001');
-        const obj1 = results.find(r => r.objective_id === 'PLC-001-OBJ-1');
-        assert.strictEqual(obj1.status, 'fail',
-            'Event with wrong dst_port should not satisfy objective');
-    });
-
-    // ── Test 4: OBJ-2 passes with correct IP ──
-    await test('OBJ-2 passes when student submits correct identified_ip', async () => {
-        const events = [{
-            id: 'evt-002', source: 'student', event_type: 'host_identified',
-            data: JSON.stringify({ identified_ip: '10.10.2.10' })
-        }];
-        const db = makeDb(exerciseRow, objectives, events);
-        const engine = new ObjectiveEngine(db);
-        const results = await engine.evaluateAll('ex-001');
-        const obj2 = results.find(r => r.objective_id === 'PLC-001-OBJ-2');
-        assert.strictEqual(obj2.status, 'pass');
-    });
-
-    // ── Test 5: OBJ-2 fails with wrong IP ──
-    await test('OBJ-2 fails when student submits wrong IP', async () => {
-        const events = [{
-            id: 'evt-wrong-ip', source: 'student', event_type: 'host_identified',
-            data: JSON.stringify({ identified_ip: '10.10.5.50' })
-        }];
-        const db = makeDb(exerciseRow, objectives, events);
-        const engine = new ObjectiveEngine(db);
-        const results = await engine.evaluateAll('ex-001');
-        const obj2 = results.find(r => r.objective_id === 'PLC-001-OBJ-2');
-        assert.strictEqual(obj2.status, 'fail');
-    });
-
-    // ── Test 6: OBJ-3 passes with sufficient text ──
-    await test('OBJ-3 passes when analysis_text has >= 50 characters', async () => {
-        const longText = 'A'.repeat(60);
-        const events = [{
-            id: 'evt-003', source: 'student', event_type: 'log_analysis_submitted',
-            data: JSON.stringify({ analysis_text: longText })
-        }];
-        const db = makeDb(exerciseRow, objectives, events);
-        const engine = new ObjectiveEngine(db);
-        const results = await engine.evaluateAll('ex-001');
-        const obj3 = results.find(r => r.objective_id === 'PLC-001-OBJ-3');
-        assert.strictEqual(obj3.status, 'pass');
-    });
-
-    // ── Test 7: OBJ-3 fails with insufficient text ──
-    await test('OBJ-3 fails when analysis_text has < 50 characters', async () => {
-        const events = [{
-            id: 'evt-short', source: 'student', event_type: 'log_analysis_submitted',
-            data: JSON.stringify({ analysis_text: 'Too short' })
-        }];
-        const db = makeDb(exerciseRow, objectives, events);
-        const engine = new ObjectiveEngine(db);
-        const results = await engine.evaluateAll('ex-001');
-        const obj3 = results.find(r => r.objective_id === 'PLC-001-OBJ-3');
-        assert.strictEqual(obj3.status, 'fail');
-    });
-
-    // ── Test 8: Multiple evidence events all captured ──
-    await test('Evidence IDs contain all matching event IDs', async () => {
+    await test('OBJ-1 rejects wrong port, wrong severity, wrong event type, and wrong source', async () => {
         const events = [
-            { id: 'evt-a', source: 'ids', event_type: 'modbus_anomaly',
-              data: JSON.stringify({ dst_port: 502, severity: 'high' }) },
-            { id: 'evt-b', source: 'ids', event_type: 'modbus_anomaly',
-              data: JSON.stringify({ dst_port: 502, severity: 'critical' }) }
+            makeEvent('evt-port', 'ids', 'modbus_anomaly', { dst_port: 80 }),
+            makeEvent('evt-severity', 'ids', 'modbus_anomaly', { dst_port: 502 }, { severity: 'info' }),
+            makeEvent('evt-type', 'ids', 'other_event', { dst_port: 502 }),
+            makeEvent('evt-source', 'student', 'modbus_anomaly', { dst_port: 502 })
         ];
-        const db = makeDb(exerciseRow, objectives, events);
-        const engine = new ObjectiveEngine(db);
-        const results = await engine.evaluateAll('ex-001');
-        const obj1 = results.find(r => r.objective_id === 'PLC-001-OBJ-1');
-        assert.ok(obj1.evidence_event_ids.includes('evt-a'));
-        assert.ok(obj1.evidence_event_ids.includes('evt-b'));
-        assert.strictEqual(obj1.evidence_count, 2);
+        await expectStatus('PLC-001-OBJ-1', events, 'fail');
+    });
+
+    await test('Wrong exercise evidence cannot satisfy OBJ-1', async () => {
+        await expectStatus('PLC-001-OBJ-1', [
+            makeEvent('evt-other-exercise', 'ids', 'modbus_anomaly', { dst_port: 502 }, { exercise_id: 'ex-other' })
+        ], 'fail');
+    });
+
+    await test('Wrong scenario evidence cannot satisfy OBJ-1', async () => {
+        await expectStatus('PLC-001-OBJ-1', [
+            makeEvent('evt-other-scenario', 'ids', 'modbus_anomaly', { dst_port: 502 }, { scenario_id: 'PLC-OTHER' })
+        ], 'fail');
+    });
+
+    await test('Authenticated student cannot spoof an IDS source event', async () => {
+        await expectStatus('PLC-001-OBJ-1', [
+            makeEvent('evt-spoofed-ids', 'ids', 'modbus_anomaly',
+                { dst_port: 502 }, { user_id: 1 })
+        ], 'fail');
+    });
+
+    await test('Telemetry owned by another user cannot satisfy an exercise objective', async () => {
+        await expectStatus('PLC-001-OBJ-2', [
+            makeEvent('evt-other-user', 'student', 'host_identified', { identified_ip: '10.10.2.10' }, { user_id: 2 })
+        ], 'fail');
+    });
+
+    await test('Student evidence without an exercise owner cannot satisfy an objective', async () => {
+        await expectStatus('PLC-001-OBJ-2', [
+            makeEvent('evt-unowned-student', 'student', 'host_identified',
+                { identified_ip: '10.10.2.10' }, { user_id: null })
+        ], 'fail');
+    });
+
+    await test('OBJ-2 accepts correct IP and rejects wrong or missing IP', async () => {
+        await expectStatus('PLC-001-OBJ-2', [
+            makeEvent('evt-correct-ip', 'student', 'host_identified', { identified_ip: '10.10.2.10' })
+        ], 'pass');
+        await expectStatus('PLC-001-OBJ-2', [
+            makeEvent('evt-wrong-ip', 'student', 'host_identified', { identified_ip: '10.10.5.50' })
+        ], 'fail');
+        await expectStatus('PLC-001-OBJ-2', [
+            makeEvent('evt-missing-ip', 'student', 'host_identified', {})
+        ], 'fail');
+    });
+
+    await test('OBJ-2 rejects malformed and non-object payloads', async () => {
+        await expectStatus('PLC-001-OBJ-2', [
+            makeEvent('evt-malformed-ip', 'student', 'host_identified', '{invalid-json')
+        ], 'fail');
+        await expectStatus('PLC-001-OBJ-2', [
+            makeEvent('evt-array-ip', 'student', 'host_identified', '[]')
+        ], 'fail');
+    });
+
+    await test('OBJ-3 accepts analysis at its configured 50-character minimum', async () => {
+        await expectStatus('PLC-001-OBJ-3', [
+            makeEvent('evt-analysis-min', 'student', 'log_analysis_submitted', { analysis_text: 'A'.repeat(50) })
+        ], 'pass');
+    });
+
+    await test('OBJ-3 rejects empty, short, wrong-type, and malformed analysis payloads', async () => {
+        for (const [id, data] of [
+            ['evt-empty-analysis', { analysis_text: '' }],
+            ['evt-short-analysis', { analysis_text: 'Too short' }],
+            ['evt-number-analysis', { analysis_text: 100 }],
+            ['evt-object-analysis', { analysis_text: { text: 'A'.repeat(60) } }],
+            ['evt-malformed-analysis', '{invalid-json']
+        ]) {
+            await expectStatus('PLC-001-OBJ-3', [
+                makeEvent(id, 'student', 'log_analysis_submitted', data)
+            ], 'fail');
+        }
+    });
+
+    await test('OBJ-4 accepts only configured containment action types', async () => {
+        await expectStatus('PLC-001-OBJ-4', [
+            makeEvent('evt-valid-action', 'student', 'containment_action', { action_type: 'block_ip' })
+        ], 'pass');
+        await expectStatus('PLC-001-OBJ-4', [
+            makeEvent('evt-invalid-action', 'student', 'containment_action', { action_type: 'allow_all' })
+        ], 'fail');
+        await expectStatus('PLC-001-OBJ-4', [
+            makeEvent('evt-missing-action', 'student', 'containment_action', {})
+        ], 'fail');
+        await expectStatus('PLC-001-OBJ-4', [
+            makeEvent('evt-wrong-type-action', 'student', 'containment_action', { action_type: 1 })
+        ], 'fail');
+    });
+
+    await test('Malformed detection logic fails closed without awarding points', async () => {
+        const invalidObjectives = [{
+            ...objectives[0],
+            detection_logic: '{invalid-json'
+        }];
+        const db = makeDb(exerciseRow, invalidObjectives, [
+            makeEvent('evt-invalid-logic', 'ids', 'modbus_anomaly', { dst_port: 502 })
+        ]);
+        const result = await new ObjectiveEngine(db).evaluateAll('ex-001');
+        assert.strictEqual(result[0].status, 'fail');
+        assert.strictEqual(result[0].score, 0);
+        assert.deepStrictEqual(result[0].evidence_event_ids, []);
     });
 
     // ── Summary ────────────────────────────────────────────────────────────────

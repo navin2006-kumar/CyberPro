@@ -27,8 +27,10 @@ function makeMockDb(scenarioData = {}, exerciseData = {}) {
                 } else if (sql.includes('scenarios')) {
                     callback(null, {
                         id: 'PLC-001',
-                        min_score: 75,
-                        min_required_passed: 3,
+                        success_conditions: {
+                            min_score: 75,
+                            min_objectives_required_passed: 3
+                        },
                         ...scenarioData
                     });
                 } else {
@@ -129,7 +131,9 @@ async function run() {
                 { objective_id: 'OBJ-3', name: 'Analyse', required: false, status: 'pass', score: 25, points: 25, evidence_count: 1, evidence_event_ids: ['ev-3'] }
             ]
         };
-        const engine = new ScoringEngine(makeMockDb({ min_score: 50 }), mockObjectiveEngine);
+        const engine = new ScoringEngine(makeMockDb({
+            success_conditions: { min_score: 50, min_objectives_required_passed: 1 }
+        }), mockObjectiveEngine);
         const result = await engine.score('test-ex-4');
 
         assert.strictEqual(result.total_score, 50);
@@ -162,6 +166,96 @@ async function run() {
         const result = await engine.score('test-ex-6');
 
         assert.strictEqual(result.completion_time_minutes, 20);
+    });
+
+    await test('Configured score and required-objective thresholds pass at exact boundaries', async () => {
+        const mockObjectiveEngine = {
+            evaluateAll: async () => [
+                { objective_id: 'OBJ-A', name: 'A', required: true, status: 'pass', score: 30, points: 30, evidence_event_ids: ['ev-a'] },
+                { objective_id: 'OBJ-B', name: 'B', required: true, status: 'pass', score: 30, points: 30, evidence_event_ids: ['ev-b'] },
+                { objective_id: 'OBJ-C', name: 'C', required: true, status: 'fail', score: 0, points: 40, evidence_event_ids: [] }
+            ]
+        };
+        const engine = new ScoringEngine(makeMockDb({
+            success_conditions: { min_score: 60, min_objectives_required_passed: 2 }
+        }), mockObjectiveEngine);
+        const result = await engine.score('configured-boundary');
+
+        assert.strictEqual(result.total_score, 60);
+        assert.strictEqual(result.pass_threshold, 60);
+        assert.strictEqual(result.minimum_required_objectives, 2);
+        assert.strictEqual(result.required_objectives_passed, 2);
+        assert.strictEqual(result.passed, true);
+    });
+
+    await test('Score below configured minimum fails even when required-objective count is met', async () => {
+        const mockObjectiveEngine = {
+            evaluateAll: async () => [
+                { objective_id: 'OBJ-A', name: 'A', required: true, status: 'pass', score: 29, points: 30, evidence_event_ids: ['ev-a'] },
+                { objective_id: 'OBJ-B', name: 'B', required: true, status: 'pass', score: 29, points: 30, evidence_event_ids: ['ev-b'] }
+            ]
+        };
+        const engine = new ScoringEngine(makeMockDb({
+            success_conditions: { min_score: 61, min_objectives_required_passed: 2 }
+        }), mockObjectiveEngine);
+        const result = await engine.score('below-score-boundary');
+
+        assert.strictEqual(result.total_score, 60);
+        assert.strictEqual(result.passed, false);
+    });
+
+    await test('A claimed pass without evidence IDs awards no points', async () => {
+        const mockObjectiveEngine = {
+            evaluateAll: async () => [
+                { objective_id: 'OBJ-A', name: 'A', required: true, status: 'pass', score: 25, points: 25, evidence_count: 0, evidence_event_ids: [] }
+            ]
+        };
+        const engine = new ScoringEngine(makeMockDb({
+            success_conditions: { min_score: 1, min_objectives_required_passed: 1 }
+        }), mockObjectiveEngine);
+        const result = await engine.score('spoofed-pass');
+
+        assert.strictEqual(result.total_score, 0);
+        assert.strictEqual(result.objectives_passed, 0);
+        assert.strictEqual(result.passed, false);
+        assert.strictEqual(result.objective_breakdown[0].status, 'fail');
+        assert.strictEqual(result.objective_breakdown[0].points_earned, 0);
+    });
+
+    await test('Evidence-backed points expose objective ID, status, points, count, and event IDs', async () => {
+        const mockObjectiveEngine = {
+            evaluateAll: async () => [
+                { objective_id: 'OBJ-TRACE', name: 'Trace', required: true, status: 'pass', score: 25, points: 25, evidence_count: 2, evidence_event_ids: ['event-1', 'event-2'] }
+            ]
+        };
+        const engine = new ScoringEngine(makeMockDb(), mockObjectiveEngine);
+        const result = await engine.score('trace-exercise');
+        const objective = result.objective_breakdown[0];
+
+        assert.strictEqual(objective.objective_id, 'OBJ-TRACE');
+        assert.strictEqual(objective.status, 'pass');
+        assert.strictEqual(objective.points_earned, 25);
+        assert.strictEqual(objective.points_possible, 25);
+        assert.strictEqual(objective.evidence_count, 2);
+        assert.deepStrictEqual(objective.evidence_event_ids, ['event-1', 'event-2']);
+    });
+
+    await test('Minimum required-objective boundary fails one below configured count', async () => {
+        const mockObjectiveEngine = {
+            evaluateAll: async () => [
+                { objective_id: 'OBJ-A', name: 'A', required: true, status: 'pass', score: 30, points: 30, evidence_event_ids: ['ev-a'] },
+                { objective_id: 'OBJ-B', name: 'B', required: true, status: 'pass', score: 30, points: 30, evidence_event_ids: ['ev-b'] },
+                { objective_id: 'OBJ-C', name: 'C', required: true, status: 'fail', score: 0, points: 40, evidence_event_ids: [] }
+            ]
+        };
+        const engine = new ScoringEngine(makeMockDb({
+            success_conditions: { min_score: 50, min_objectives_required_passed: 3 }
+        }), mockObjectiveEngine);
+        const result = await engine.score('below-objective-boundary');
+
+        assert.strictEqual(result.total_score, 60);
+        assert.strictEqual(result.required_objectives_passed, 2);
+        assert.strictEqual(result.passed, false);
     });
 
     console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
