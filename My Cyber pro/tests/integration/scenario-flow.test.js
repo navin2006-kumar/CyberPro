@@ -97,6 +97,7 @@ function createTestDatabase() {
                     evaluated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     evidence_count INTEGER DEFAULT 0,
                     evidence_event_ids TEXT,
+                    validation_details TEXT,
                     UNIQUE(exercise_id, objective_id)
                 )`);
 
@@ -110,6 +111,9 @@ function createTestDatabase() {
                     objectives_passed INTEGER DEFAULT 0,
                     objectives_failed INTEGER DEFAULT 0,
                     passed BOOLEAN DEFAULT 0,
+                    rule_version TEXT,
+                    rule_hash TEXT,
+                    score_trace TEXT,
                     scored_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )`);
 

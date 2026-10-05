@@ -83,3 +83,28 @@ No real lab exercise modification, Docker Compose reset, or live health check oc
 ### Runtime Verification
 
 `docker info` could not connect to `npipe:////./pipe/dockerDesktopLinuxEngine`. All six requested traffic tests therefore have observed-result counts of **0 PASS, 0 BLOCKED, 0 UNEXPECTED, 6 NOT TESTED**. No packet/connectivity probe was run and no public endpoint was contacted. Static configuration concerns are separately marked **UNEXPECTED** in `results/network-containment.json`; they are not reported as observed network behavior. No "network fully isolated" claim is made.
+
+## 2026-10-05 — Phase 5: Evidence Chain and Replay
+
+### Implemented
+
+- Objective results now return and persist the rule, candidate count, accepted evidence IDs, rejected event IDs/reasons, and evaluation timestamp.
+- Final scoring returns and persists an auditable score trace containing exercise/scenario IDs, objective components, evidence details, total/maximum score, configured thresholds, final decision, scenario rule version, and a SHA-256 rule fingerprint.
+- Added read-only replay at `GET /api/reports/:exerciseId/replay`. It uses retained telemetry and the Objective Engine without overwriting original objective or score rows, then compares objective results, evidence/validation details, score components, final decision, and rule fingerprint.
+- Deterministic comparison ignores evaluation timestamps and telemetry ordering. Rule-version/hash changes and event mutations are discrepancies.
+- Added synthetic SQLite replay tests and generated `results/replay-verification.json`.
+
+### Verification
+
+```text
+node tests/unit/replayEngine.test.js
+Results: 7 passed, 0 failed
+
+node tests/security/evidence-admission.test.js
+Results: 17 passed, 0 failed
+
+npm test
+Total Suites: 10 | Passed: 10 | Failed: 0
+```
+
+The replay cases include exact match, removed event, changed payload, duplicate event, reordered event timestamps, newly malformed event, and changed scenario rule version. Verification is software/control-plane only and must not be described as learner performance or live-lab verification.

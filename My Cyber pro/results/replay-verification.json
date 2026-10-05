@@ -1,0 +1,182 @@
+{
+  "recorded_at": "2026-10-05T16:24:01.168Z",
+  "execution_mode": "SOFTWARE_CONTROL_PLANE_REPLAY_TEST",
+  "assurance_scope": "software/control-plane verification only; not learner performance",
+  "source": "synthetic retained telemetry in in-memory SQLite",
+  "test_count": 7,
+  "passed": 7,
+  "failed": 0,
+  "results": [
+    {
+      "id": "exact-replay-is-consistent",
+      "expected_consistent": true,
+      "replay_consistent": true,
+      "objective_results_match": true,
+      "score_matches": true,
+      "discrepancies": [],
+      "original_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "replayed_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "missing-retained-event-changes-objective-trace",
+      "expected_consistent": false,
+      "replay_consistent": false,
+      "objective_results_match": false,
+      "score_matches": true,
+      "discrepancies": [
+        "objective_results_changed"
+      ],
+      "original_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "replayed_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "changed-retained-event-changes-objective-trace",
+      "expected_consistent": false,
+      "replay_consistent": false,
+      "objective_results_match": false,
+      "score_matches": true,
+      "discrepancies": [
+        "objective_results_changed"
+      ],
+      "original_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "replayed_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "duplicate-retained-event-changes-evidence-ids",
+      "expected_consistent": false,
+      "replay_consistent": false,
+      "objective_results_match": false,
+      "score_matches": true,
+      "discrepancies": [
+        "objective_results_changed"
+      ],
+      "original_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "replayed_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "reordered-event-timestamps-preserve-deterministic-replay",
+      "expected_consistent": true,
+      "replay_consistent": true,
+      "objective_results_match": true,
+      "score_matches": true,
+      "discrepancies": [],
+      "original_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "replayed_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "new-malformed-retained-event-changes-validation-trace",
+      "expected_consistent": false,
+      "replay_consistent": false,
+      "objective_results_match": false,
+      "score_matches": true,
+      "discrepancies": [
+        "objective_results_changed"
+      ],
+      "original_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "replayed_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "changed-scenario-rule-version-is-reported-as-inconsistent",
+      "expected_consistent": false,
+      "replay_consistent": false,
+      "objective_results_match": true,
+      "score_matches": true,
+      "discrepancies": [
+        "rule_version_or_hash_changed"
+      ],
+      "original_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "replayed_score": {
+        "total_score": 10,
+        "max_score": 10,
+        "pass_threshold": 10,
+        "minimum_required_objectives": 1,
+        "final_decision": "PASS"
+      },
+      "status": "PASS"
+    }
+  ]
+}

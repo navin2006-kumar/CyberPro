@@ -95,3 +95,11 @@ For comparative research studies, an automated reference baseline can be execute
 3. Assert that the IDS captures the anomaly within $\le 5$ seconds.
 4. Verify that `ObjectiveEngine` successfully triggers passing status for `PLC-001-OBJ-1`.
 5. Trigger reset and verify that health checks return status `200` in $< 30$ seconds.
+
+## 5. Score Replay Protocol
+
+An original score stores the objective validation trace, evaluation timestamps, final score components, and a fingerprint of the scenario rule version and scoring configuration. `GET /api/reports/:exerciseId/replay` reevaluates retained telemetry with the current Objective Engine in read-only mode and compares the result against the original objective rows and score trace. It does not replace the original result.
+
+When retained evidence and rule fingerprint are unchanged, objective statuses, points, evidence IDs, thresholds, and final decision should match. Event timestamps may be reordered without changing the result; timestamps for the new evaluation are recorded separately and excluded from the deterministic comparison. Missing, changed, duplicated, or newly invalid events, and changed rule versions are reported as discrepancies.
+
+Verification on 2026-10-05: `node tests/unit/replayEngine.test.js` reported **7 passed, 0 failed**; `npm test` reported **10 suites passed, 0 failed**. The replay suite uses synthetic retained telemetry and in-memory SQLite. This is software/control-plane replay verification only, not learner-performance measurement or an end-to-end lab replay.

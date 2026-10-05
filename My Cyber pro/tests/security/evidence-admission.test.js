@@ -79,6 +79,7 @@ function createDatabase() {
                         status TEXT NOT NULL,
                         score INTEGER NOT NULL DEFAULT 0,
                         evidence_event_ids TEXT,
+                        validation_details TEXT,
                         evaluated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                         UNIQUE(exercise_id, objective_id)
                     )`);
@@ -92,6 +93,9 @@ function createDatabase() {
                         objectives_passed INTEGER DEFAULT 0,
                         objectives_failed INTEGER DEFAULT 0,
                         passed BOOLEAN DEFAULT 0,
+                        rule_version TEXT,
+                        rule_hash TEXT,
+                        score_trace TEXT,
                         scored_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     )`);
 
@@ -178,7 +182,7 @@ async function run() {
         if (role) headers['x-test-role'] = role;
         if (secret) headers['x-cyberpro-secret'] = secret;
         const response = await fetch(`${baseUrl}${path}`, {
-            method: path.includes('/score') ? 'GET' : 'POST',
+            method: path.includes('/score') || path.endsWith('/replay') ? 'GET' : 'POST',
             headers,
             body: rawBody !== undefined ? rawBody : body === undefined ? undefined : JSON.stringify(body)
         });
@@ -333,6 +337,11 @@ async function run() {
 
     await test('non-owner cannot request another user score', 'REJECT', async () => {
         const response = await request('/api/reports/exercise-alice/score', { userId: 2 });
+        assert.strictEqual(response.status, 403);
+    });
+
+    await test('non-owner cannot request another user replay', 'REJECT', async () => {
+        const response = await request('/api/reports/exercise-alice/replay', { userId: 2 });
         assert.strictEqual(response.status, 403);
     });
 

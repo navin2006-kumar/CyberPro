@@ -22,15 +22,13 @@ function makeDb(exerciseRow, objectives, events) {
             all: (sql, params, cb) => {
                 if (sql.includes('scenario_objectives')) return cb(null, objectives);
                 if (sql.includes('telemetry_events')) {
-                    const [exerciseId, scenarioId, ownerId, source, eventType] = params;
+                    const [exerciseId, scenarioId, ownerId] = params;
                     const filtered = events.filter(event =>
                         event.exercise_id === exerciseId &&
                         event.scenario_id === scenarioId &&
                         (event.source === 'student'
                             ? event.user_id === ownerId
-                            : event.user_id == null) &&
-                        event.source === source &&
-                        event.event_type === eventType
+                            : event.user_id == null)
                     );
                     return cb(null, filtered);
                 }
@@ -164,6 +162,18 @@ async function test(name, fn) {
         assert.deepStrictEqual(JSON.parse(saved.find(row => row[1] === 'PLC-001-OBJ-1')[4]), result.evidence_event_ids);
     });
 
+    await test('Objective result exposes deterministic validation details and evaluation timestamp', async () => {
+        const { result } = await evaluate('PLC-001-OBJ-1', [
+            makeEvent('evt-audit-valid', 'ids', 'modbus_anomaly', { dst_port: 502 }),
+            makeEvent('evt-audit-invalid', 'ids', 'modbus_anomaly', '{malformed-json')
+        ]);
+        assert.ok(result.evaluation_timestamp);
+        assert.deepStrictEqual(result.validation_details.accepted_event_ids, ['evt-audit-valid']);
+        assert.deepStrictEqual(result.validation_details.rejected_events, [
+            { event_id: 'evt-audit-invalid', reasons: ['malformed_json'] }
+        ]);
+    });
+
     await test('OBJ-1 rejects wrong port, wrong severity, wrong event type, and wrong source', async () => {
         const events = [
             makeEvent('evt-port', 'ids', 'modbus_anomaly', { dst_port: 80 }),
@@ -172,6 +182,12 @@ async function test(name, fn) {
             makeEvent('evt-source', 'student', 'modbus_anomaly', { dst_port: 502 })
         ];
         await expectStatus('PLC-001-OBJ-1', events, 'fail');
+        const { result } = await evaluate('PLC-001-OBJ-1', events);
+        const rejectionReasons = result.validation_details.rejected_events.flatMap(event => event.reasons);
+        assert.ok(rejectionReasons.includes('source_mismatch'));
+        assert.ok(rejectionReasons.includes('event_type_mismatch'));
+        assert.ok(rejectionReasons.includes('field_mismatch:dst_port'));
+        assert.ok(rejectionReasons.includes('field_mismatch:severity'));
     });
 
     await test('Wrong exercise evidence cannot satisfy OBJ-1', async () => {

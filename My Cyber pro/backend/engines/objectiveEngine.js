@@ -27,7 +27,7 @@ class ObjectiveEngine {
      * @param {string} exerciseId - UUID of the exercise_session
      * @returns {Promise<Array>} Array of objective result objects
      */
-    async evaluateAll(exerciseId) {
+    async evaluateAll(exerciseId, options = {}) {
         const exercise = await this._getExercise(exerciseId);
         if (!exercise) throw new Error(`Exercise not found: ${exerciseId}`);
 
@@ -37,7 +37,7 @@ class ObjectiveEngine {
         const results = [];
 
         for (const obj of objectives) {
-            const result = await this._evaluateObjective(exercise, obj);
+            const result = await this._evaluateObjective(exercise, obj, options);
             results.push(result);
         }
 
@@ -50,22 +50,25 @@ class ObjectiveEngine {
      * @param {object} objective - scenario_objectives row
      * @returns {Promise<object>} { objective_id, status, score, evidence_event_ids }
      */
-    async _evaluateObjective(exercise, objective) {
+    async _evaluateObjective(exercise, objective, options = {}) {
         const logic = this._parseDetectionLogic(objective.detection_logic);
-        const matchingEvents = await this._queryMatchingEvents(exercise, logic);
+        const { matchingEvents, validationDetails } = await this._queryMatchingEvents(exercise, logic);
 
         const status = matchingEvents.length > 0 ? 'pass' : 'fail';
         const score = status === 'pass' ? objective.points : 0;
-        const evidenceIds = matchingEvents.map(e => e.id);
+        const evidenceIds = matchingEvents.map(event => event.id).sort();
+        const evaluationTimestamp = new Date().toISOString();
 
-        // Upsert into objective_results
-        await this._saveObjectiveResult(
-            exercise.id,
-            objective.id,
-            status,
-            score,
-            evidenceIds
-        );
+        if (options.persist !== false) {
+            await this._saveObjectiveResult(
+                exercise.id,
+                objective.id,
+                status,
+                score,
+                evidenceIds,
+                validationDetails
+            );
+        }
 
         return {
             objective_id: objective.id,
@@ -75,7 +78,9 @@ class ObjectiveEngine {
             status,
             score,
             evidence_event_ids: evidenceIds,
-            evidence_count: matchingEvents.length
+            evidence_count: matchingEvents.length,
+            validation_details: validationDetails,
+            evaluation_timestamp: evaluationTimestamp
         };
     }
 
@@ -83,43 +88,90 @@ class ObjectiveEngine {
      * Query telemetry_events that match the detection logic for an objective.
      */
     async _queryMatchingEvents(exercise, logic) {
-        if (!logic) return [];
+        if (!logic) {
+            return {
+                matchingEvents: [],
+                validationDetails: {
+                    rule_valid: false,
+                    candidate_event_count: 0,
+                    accepted_event_ids: [],
+                    rejected_events: []
+                }
+            };
+        }
 
         return new Promise((resolve, reject) => {
-            const sql = `
+                        const sql = `
                 SELECT * FROM telemetry_events
                 WHERE exercise_id = ?
                   AND scenario_id = ?
                    AND ((source = 'student' AND user_id = ?) OR
                        (source != 'student' AND user_id IS NULL))
-                  AND source = ?
-                  AND event_type = ?
-                ORDER BY timestamp ASC
+                                ORDER BY id ASC
             `;
 
             this.db.db.all(sql, [
                 exercise.id,
                 exercise.scenario_id,
-                exercise.user_id,
-                logic.source,
-                logic.event_type
+                                exercise.user_id
             ], (err, rows) => {
                 if (err) return reject(err);
 
-                const checks = logic.field_checks || {};
-                const filtered = (rows || []).filter(row => {
-                    if (typeof row.id !== 'string' || !row.id) return false;
-                    if (typeof row.data !== 'string') return false;
+                const matchingEvents = [];
+                const rejectedEvents = [];
+                for (const row of rows || []) {
+                    const reasons = [];
+                    if (typeof row.id !== 'string' || !row.id) reasons.push('invalid_event_id');
+                    if (row.source !== logic.source) reasons.push('source_mismatch');
+                    if (row.event_type !== logic.event_type) reasons.push('event_type_mismatch');
+                    if (reasons.length > 0) {
+                        rejectedEvents.push({
+                            event_id: row.id || null,
+                            reasons: [...new Set(reasons)].sort()
+                        });
+                        continue;
+                    }
+                    if (typeof row.data !== 'string') {
+                        reasons.push('payload_not_string');
+                        rejectedEvents.push({ event_id: row.id || null, reasons });
+                        continue;
+                    }
+
+                    let data;
                     try {
-                        const data = JSON.parse(row.data);
-                        if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
-                        return this._checkFields(data, checks, row);
+                        data = JSON.parse(row.data);
                     } catch {
-                        return false;
+                        reasons.push('malformed_json');
+                        rejectedEvents.push({ event_id: row.id || null, reasons });
+                        continue;
+                    }
+
+                    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+                        reasons.push('payload_not_object');
+                    } else {
+                        reasons.push(...this._validateFields(data, logic.field_checks || {}, row));
+                    }
+
+                    if (reasons.length > 0) {
+                        rejectedEvents.push({ event_id: row.id || null, reasons: [...new Set(reasons)].sort() });
+                    } else {
+                        matchingEvents.push(row);
+                    }
+                }
+
+                const acceptedEventIds = matchingEvents.map(event => event.id).sort();
+                rejectedEvents.sort((left, right) =>
+                    String(left.event_id).localeCompare(String(right.event_id)));
+                resolve({
+                    matchingEvents,
+                    validationDetails: {
+                        rule_valid: true,
+                        rule: logic,
+                        candidate_event_count: (rows || []).length,
+                        accepted_event_ids: acceptedEventIds,
+                        rejected_events: rejectedEvents
                     }
                 });
-
-                resolve(filtered);
             });
         });
     }
@@ -127,48 +179,62 @@ class ObjectiveEngine {
     /**
      * Check that a telemetry event's data fields match the required conditions.
      */
-    _checkFields(data, checks, row) {
-        if (!checks || typeof checks !== 'object' || Array.isArray(checks)) return false;
+    _validateFields(data, checks, row) {
+        if (!checks || typeof checks !== 'object' || Array.isArray(checks)) {
+            return ['invalid_field_checks'];
+        }
+
+        const reasons = [];
 
         for (const [field, expected] of Object.entries(checks)) {
             if (field.endsWith('_min_length')) {
                 const actualField = field.replace('_min_length', '');
                 const text = data[actualField];
-                if (typeof expected !== 'number' || !Number.isFinite(expected) || expected < 0 ||
-                    typeof text !== 'string' || text.trim().length < expected) return false;
+                if (typeof expected !== 'number' || !Number.isFinite(expected) || expected < 0) {
+                    reasons.push(`invalid_min_length_rule:${actualField}`);
+                } else if (typeof text !== 'string') {
+                    reasons.push(`field_type_mismatch:${actualField}`);
+                } else if (text.trim().length < expected) {
+                    reasons.push(`field_min_length_not_met:${actualField}`);
+                }
                 continue;
             }
 
             const actual = field === 'severity' ? row.severity : data[field];
-            if (actual === undefined || actual === null) return false;
+            if (actual === undefined || actual === null) {
+                reasons.push(`field_missing:${field}`);
+                continue;
+            }
 
             if (Array.isArray(expected)) {
-                if (!expected.includes(actual)) return false;
+                if (!expected.includes(actual)) reasons.push(`field_mismatch:${field}`);
             } else {
-                if (actual !== expected) return false;
+                if (actual !== expected) reasons.push(`field_mismatch:${field}`);
             }
         }
-        return true;
+        return reasons;
     }
 
     /**
      * Save (upsert) an objective result to the DB.
      */
-    _saveObjectiveResult(exerciseId, objectiveId, status, score, evidenceIds) {
+    _saveObjectiveResult(exerciseId, objectiveId, status, score, evidenceIds, validationDetails) {
         return new Promise((resolve, reject) => {
             const sql = `
                 INSERT INTO objective_results
-                    (exercise_id, objective_id, status, score, evidence_event_ids, evaluated_at)
-                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    (exercise_id, objective_id, status, score, evidence_event_ids, validation_details, evaluated_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(exercise_id, objective_id) DO UPDATE SET
                     status             = excluded.status,
                     score              = excluded.score,
                     evidence_event_ids = excluded.evidence_event_ids,
+                    validation_details = excluded.validation_details,
                     evaluated_at       = excluded.evaluated_at
             `;
             this.db.db.run(
                 sql,
-                [exerciseId, objectiveId, status, score, JSON.stringify(evidenceIds)],
+                [exerciseId, objectiveId, status, score, JSON.stringify(evidenceIds),
+                    JSON.stringify(validationDetails)],
                 (err) => err ? reject(err) : resolve()
             );
         });

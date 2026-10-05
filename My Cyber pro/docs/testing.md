@@ -20,17 +20,18 @@ The CyberPro testing strategy prioritizes **end-to-end reliability, mathematical
 
 | Suite Name | Path | Target Component | Assertions |
 |---|---|---|---|
-| **Objective Engine** | `tests/unit/objectiveEngine.test.js` | `ObjectiveEngine` rule evaluation against scoped telemetry | 13 tests covering all PLC-001 objectives, ownership/scope spoofing, invalid payloads/types, configured checks, and persisted evidence IDs |
+| **Objective Engine** | `tests/unit/objectiveEngine.test.js` | `ObjectiveEngine` rule evaluation against scoped telemetry | 14 tests covering all PLC-001 objectives, ownership/scope spoofing, invalid payloads/types, configured checks, validation details, and evidence IDs |
 | **Scoring Engine** | `tests/unit/scoringEngine.test.js` | `ScoringEngine` evidence-backed points and configured pass criteria | 11 tests covering score/objective thresholds, evidence gating, trace fields, and duration math |
+| **Score Replay** | `tests/unit/replayEngine.test.js` | Read-only replay from retained telemetry and persisted score traces | 7 synthetic SQLite cases covering exact replay, event mutations/order, invalid evidence, and rule-version changes |
 | **Timeline Engine** | `tests/unit/timelineEngine.test.js` | `TimelineEngine` chronology & description formatting | 5 tests covering event formatting, relative offsets, and severity mapping |
 | **Authentication** | `tests/unit/auth.test.js` | Bcrypt password hashing & credential checking | 5 tests covering hashing, salt uniqueness, and invalid password rejection |
 | **RBAC Middleware** | `tests/unit/rbac.test.js` | `requireAuth` & `requireRole` middleware | 12 tests covering all role permutations and unauthenticated access denial |
 | **Reset Engine** | `tests/unit/resetEngine.test.js` | Baseline, Docker metadata/config hashes, state comparison, residue and health gates | 6 mocked-reset tests; no Docker daemon is used |
 | **Scenario Lifecycle** | `tests/integration/scenario-flow.test.js` | 9-step scenario exercise lifecycle in in-memory SQLite | End-to-end database verification, including exclusion of spoofed evidence and evidence ID persistence; does not run Docker |
 | **Security Matrix** | `tests/security/rbac-enforcement.test.js` | Route privilege boundary defense | 9 tests verifying complete privilege separation |
-| **Evidence Admission** | `tests/security/evidence-admission.test.js` | Telemetry and score admission boundary | 16 explicit ACCEPT/REJECT tests using real HTTP routes and in-memory SQLite |
+| **Evidence Admission** | `tests/security/evidence-admission.test.js` | Telemetry, score and replay ownership boundary | 17 explicit ACCEPT/REJECT tests using real HTTP routes and in-memory SQLite |
 
-**Suite Count**: 9 automated test suites. The test runner does not report a single assertion total.
+**Suite Count**: 10 automated test suites. The test runner does not report a single assertion total.
 
 ### Phase 1 Verification Record (2026-10-05)
 Focused commands executed in the project root:
@@ -55,6 +56,16 @@ Total Suites: 8 | Passed: 8 | Failed: 0
 The new cases define acceptance for owner-submitted student events and secret-authenticated IDS events, and rejection for spoofed sources, wrong exercise/scenario/type, invalid or malformed payloads, forged objective IDs, exact duplicates/replays, non-owner evidence/score requests, and cross-user contamination.
 
 These tests verify application-level behavior only. They do not establish complete security assurance or verify a running Docker deployment.
+
+### Phase 5 Replay Verification Record (2026-10-05)
+Command executed:
+```bash
+node tests/unit/replayEngine.test.js
+```
+Observed result: `Results: 7 passed, 0 failed`. The suite writes [results/replay-verification.json](../results/replay-verification.json) from synthetic retained telemetry in in-memory SQLite. It verifies software/control-plane replay consistency only; it does not measure learner performance.
+
+Full-suite command: `npm test`
+Observed result: `Total Suites: 10 | Passed: 10 | Failed: 0`.
 
 ### Phase 3 Reset Verification Record (2026-10-05)
 Command executed:
@@ -87,6 +98,7 @@ node tests/unit/timelineEngine.test.js
 node tests/unit/auth.test.js
 node tests/unit/rbac.test.js
 node tests/unit/resetEngine.test.js
+node tests/unit/replayEngine.test.js
 
 # Integration tests
 node tests/integration/scenario-flow.test.js

@@ -49,6 +49,21 @@ router.get('/:exerciseId/score', requireAuth, async (req, res) => {
     }
 });
 
+// ─── GET /api/reports/:exerciseId/replay ─────────────────────────────────────
+router.get('/:exerciseId/replay', requireAuth, async (req, res) => {
+    try {
+        const db = req.app.locals.db;
+        const { exerciseId } = req.params;
+        await getExerciseOrFail(db, exerciseId, req.session.userId, req.session.role);
+
+        const objectiveEngine = new ObjectiveEngine(db);
+        const replayResult = await new ScoringEngine(db, objectiveEngine).replay(exerciseId);
+        res.json({ success: true, ...replayResult });
+    } catch (err) {
+        res.status(err.status || 500).json({ success: false, message: err.message });
+    }
+});
+
 // ─── GET /api/reports/:exerciseId/timeline ───────────────────────────────────
 router.get('/:exerciseId/timeline', requireAuth, async (req, res) => {
     try {

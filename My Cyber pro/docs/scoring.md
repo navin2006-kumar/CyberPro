@@ -99,3 +99,16 @@ To reinforce experiential learning (Kolb's Experiential Learning Cycle), student
 6. **Insight**: What key industrial cybersecurity principle was reinforced?
 
 Debrief responses are persisted in `debrief_responses` and correlated with the final AAR.
+
+## 5. Auditable Score Trace and Replay
+
+Each persisted `objective_results` row now retains `evidence_event_ids`, `validation_details`, and `evaluated_at`. The validation details include the objective rule, candidate event count, accepted event IDs, and rejected event IDs with validation reasons. The score response and persisted `exercise_scores.score_trace` carry:
+
+- Exercise ID and scenario ID.
+- Each objective ID, status, awarded score, evidence IDs, validation details, and evaluation timestamp.
+- Total and maximum score, configured pass threshold, minimum required objectives, and final `PASS`/`FAIL` decision.
+- Scenario rule version and SHA-256 fingerprint covering the scenario version, success conditions, objective points/required flags, and detection rules.
+
+`GET /api/reports/:exerciseId/replay` checks the caller's exercise ownership, reruns the Objective Engine against retained telemetry without writing results, and compares the replay to the persisted objective rows and original score. The comparison ignores evaluation timestamps and event ordering, but compares status, score, evidence IDs, validation trace, final score gates/decision, and rule version/hash. A changed version is reported as inconsistent even if its numeric score happens to remain equal.
+
+Replay validates deterministic software/control-plane behavior only. It is not a replay or measure of learner performance. The current regression suite uses synthetic retained events in in-memory SQLite; it does not establish broader production or research validity.

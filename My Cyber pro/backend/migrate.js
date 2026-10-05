@@ -95,10 +95,12 @@ const MIGRATIONS = [
         status           TEXT DEFAULT 'pending'
                              CHECK(status IN ('pending','pass','fail')),
         evidence_event_ids TEXT,            -- JSON array of telemetry_event IDs
+        validation_details TEXT,            -- Rule and event validation trace
         evaluated_at     DATETIME,
         score            INTEGER DEFAULT 0,
         UNIQUE(exercise_id, objective_id)
     )`,
+    `ALTER TABLE objective_results ADD COLUMN validation_details TEXT`,
 
     // ─── Table 6: exercise_scores ────────────────────────────────────────────
     `CREATE TABLE IF NOT EXISTS exercise_scores (
@@ -111,8 +113,14 @@ const MIGRATIONS = [
         objectives_passed   INTEGER DEFAULT 0,
         objectives_failed   INTEGER DEFAULT 0,
         passed              BOOLEAN DEFAULT 0,
+        rule_version        TEXT,
+        rule_hash           TEXT,
+        score_trace         TEXT,
         scored_at           DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
+    `ALTER TABLE exercise_scores ADD COLUMN rule_version TEXT`,
+    `ALTER TABLE exercise_scores ADD COLUMN rule_hash TEXT`,
+    `ALTER TABLE exercise_scores ADD COLUMN score_trace TEXT`,
 
     // ─── Table 7: debrief_responses ──────────────────────────────────────────
     `CREATE TABLE IF NOT EXISTS debrief_responses (
